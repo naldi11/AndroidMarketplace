@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">MarketPlaceMahasiswa</string>
+    <string name="login_first">Harap login terlebih dahulu.</string>
+    <string name="product_not_found">Produk tidak ditemukan</string>
+    <string name="add_to_cart_success">Berhasil ditambahkan ke Keranjang</string>
+    <string name="add_to_cart_failed">Gagal menambahkan keranjang</string>
+    <string name="wishlist_updated">Wishlist diupdate</string>
+    <string name="wishlist_update_failed">Gagal mengupdate wishlist</string>
+    <string name="wishlist_empty">Wishlist Anda kosong.</string>
+    <string name="server_error">Kesalahan Server</string>
+    <string name="network_error">Kesalahan jaringan</string>
+    <string name="wa_num_not_avail">Nomor Whatsapp penjual tidak tersedia</string>
+    <string name="wa_app_not_install">Aplikasi WhatsApp tidak terinstall</string>
+    <string name="buy_now">Beli</string>
+    <string name="out_of_stock">Habis</string>
+    <string name="chat">Chat</string>
+    <string name="wishlist">Wishlist</string>
+    <string name="title_product_detail">Detail Produk</string>
+</resources>

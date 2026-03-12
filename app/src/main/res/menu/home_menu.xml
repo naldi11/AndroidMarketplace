@@ -1,0 +1,23 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/action_profile"
+        android:title="Profil Akun"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_wishlist"
+        android:title="Wishlist Saya"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_sell"
+        android:title="Jual Produk Anda"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_transactions"
+        android:title="Pesanan Saya"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_logout"
+        android:title="Logout"
+        app:showAsAction="never" />
+</menu>
