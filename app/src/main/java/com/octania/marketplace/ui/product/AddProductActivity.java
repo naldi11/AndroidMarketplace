@@ -95,6 +95,8 @@ public class AddProductActivity extends AppCompatActivity {
                 }
             });
 
+    private final String[] weightUnits = { "gr", "kg" };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -120,6 +122,11 @@ public class AddProductActivity extends AppCompatActivity {
         ArrayAdapter<String> condAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item,
                 conditionList);
         binding.spinnerCondition.setAdapter(condAdapter);
+
+        // Setup weight units spinner
+        ArrayAdapter<String> weightAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item,
+                weightUnits);
+        binding.spinnerWeightUnit.setAdapter(weightAdapter);
 
         binding.btnSelectImage.setOnClickListener(v -> openImageChooser());
         binding.btnSubmit.setOnClickListener(v -> submitProduct());
@@ -278,10 +285,25 @@ public class AddProductActivity extends AppCompatActivity {
         }
         String categoryId = String.valueOf(categoryIds.get(categoryIndex));
 
-        String weight = binding.etWeight.getText().toString().trim();
+        String weightInput = binding.etWeight.getText().toString().trim();
+        String weightUnit = binding.spinnerWeightUnit.getSelectedItem().toString();
+        String finalWeight = weightInput;
+
+        if (!weightInput.isEmpty()) {
+            try {
+                double w = Double.parseDouble(weightInput);
+                if ("kg".equals(weightUnit)) {
+                    w = w * 1000;
+                }
+                finalWeight = String.valueOf((int) w);
+            } catch (Exception e) {
+                finalWeight = weightInput;
+            }
+        }
+
         String location = binding.etLocation.getText().toString().trim();
 
-        if (name.isEmpty() || price.isEmpty() || stock.isEmpty() || desc.isEmpty() || weight.isEmpty()
+        if (name.isEmpty() || price.isEmpty() || stock.isEmpty() || desc.isEmpty() || weightInput.isEmpty()
                 || location.isEmpty() || selectedImages.isEmpty()) {
             Toast.makeText(this, "Harap lengkapi semua data dan minimal 1 foto!", Toast.LENGTH_SHORT).show();
             return;
@@ -308,7 +330,7 @@ public class AddProductActivity extends AppCompatActivity {
             RequestBody stockBody = RequestBody.create(MediaType.parse("text/plain"), stock);
             RequestBody categoryIdBody = RequestBody.create(MediaType.parse("text/plain"), categoryId);
             RequestBody conditionBody = RequestBody.create(MediaType.parse("text/plain"), condition);
-            RequestBody weightBody = RequestBody.create(MediaType.parse("text/plain"), weight);
+            RequestBody weightBody = RequestBody.create(MediaType.parse("text/plain"), finalWeight);
             RequestBody locationBody = RequestBody.create(MediaType.parse("text/plain"), location);
             // Jika lokasi GPS tidak tersedia, kirim string kosong agar backend tetap menerima request.
             String latString = currentLat != null ? String.valueOf(currentLat) : "";

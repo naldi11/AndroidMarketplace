@@ -29,6 +29,7 @@ public class ProductAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
     private final Context context;
     private final List<Product> productList;
+    private final List<com.octania.marketplace.data.model.ad.AdBanner> adBanners = new ArrayList<>();
     private final OnItemClickListener listener;
 
     public interface OnItemClickListener {
@@ -50,6 +51,14 @@ public class ProductAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         this.productList.clear();
         this.productList.addAll(newProducts);
         System.out.println("=== PRODUCT_ADAPTER: productList size after update: " + this.productList.size());
+        notifyDataSetChanged();
+    }
+
+    public void setAdBanners(List<com.octania.marketplace.data.model.ad.AdBanner> ads) {
+        this.adBanners.clear();
+        if (ads != null) {
+            this.adBanners.addAll(ads);
+        }
         notifyDataSetChanged();
     }
 
@@ -88,7 +97,7 @@ public class ProductAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         if (holder instanceof ProductViewHolder) {
             ((ProductViewHolder) holder).bind(productList.get(position));
         } else if (holder instanceof AdViewHolder) {
-            // Nothing to bind for statis ad banner currently
+            ((AdViewHolder) holder).bind(position);
         }
     }
 
@@ -98,8 +107,50 @@ public class ProductAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     }
 
     class AdViewHolder extends RecyclerView.ViewHolder {
+        ImageView ivBanner;
+        TextView tvAdTitle;
+
         AdViewHolder(View itemView) {
             super(itemView);
+            ivBanner = itemView.findViewById(R.id.ivBanner);
+            tvAdTitle = itemView.findViewById(R.id.tvAdTitle);
+        }
+
+        void bind(int position) {
+            Log.d("ADS_DEBUG", "Binding AD at pos: " + position + ", total ads: " + adBanners.size());
+            if (adBanners.isEmpty()) {
+                ivBanner.setImageResource(R.drawable.bg_category_icon); // Fallback
+                if (tvAdTitle != null) tvAdTitle.setText("Iklan Sponsor");
+                return;
+            }
+
+            // Calculate which ad to show based on its position in the list (looping)
+            int adIndex = (position / 4) % adBanners.size();
+            com.octania.marketplace.data.model.ad.AdBanner ad = adBanners.get(adIndex);
+
+            if (tvAdTitle != null) {
+                tvAdTitle.setText(ad.getTitle() != null ? ad.getTitle() : "Iklan Sponsor");
+            }
+
+            String imageUrl = ad.getImage();
+            if (imageUrl != null && !imageUrl.isEmpty()) {
+                String fullUrl = imageUrl;
+                if (!imageUrl.startsWith("http")) {
+                    String baseStorage = ApiClient.BASE_URL.replace("/api/", "/storage/");
+                    fullUrl = baseStorage + imageUrl;
+                }
+
+                Log.d("ADS_DEBUG", "Loading AD image: " + fullUrl);
+
+                Glide.with(context)
+                        .load(fullUrl)
+                        .placeholder(R.drawable.bg_category_icon)
+                        .error(R.drawable.bg_category_icon)
+                        .centerCrop()
+                        .into(ivBanner);
+            } else {
+                ivBanner.setImageResource(R.drawable.bg_category_icon);
+            }
         }
     }
 

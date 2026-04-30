@@ -13,7 +13,7 @@ public class AdBanner {
     private String image;
 
     @SerializedName("is_active")
-    private boolean isActive;
+    private int isActive;
 
     public int getId() {
         return id;
@@ -39,11 +39,11 @@ public class AdBanner {
         this.image = image;
     }
 
-    public boolean isActive() {
+    public int getActive() {
         return isActive;
     }
 
-    public void setActive(boolean active) {
+    public void setActive(int active) {
         isActive = active;
     }
 }

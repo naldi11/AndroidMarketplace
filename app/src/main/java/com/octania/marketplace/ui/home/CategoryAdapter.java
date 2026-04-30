@@ -118,8 +118,9 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.Catego
             selectedPosition = holder.getAdapterPosition();
             notifyItemChanged(prev);
             notifyItemChanged(selectedPosition);
+            String slug = category.get("slug") != null ? category.get("slug").toString() : null;
             listener.onCategoryClick(
-                    selectedPosition == 0 ? null : name,
+                    selectedPosition == 0 ? null : slug,
                     selectedPosition);
         });
     }

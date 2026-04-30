@@ -96,11 +96,34 @@ public class HomeActivity extends AppCompatActivity {
 
         fetchCategories();
         fetchVouchers();
+        fetchAdBanners();
         fetchLocationAndProducts();
         handleRefreshIntent(getIntent());
     }
 
     // ==================== SETUP ====================
+
+    private void fetchAdBanners() {
+        apiService.getAdBanners().enqueue(new Callback<com.octania.marketplace.data.model.response.AdBannerResponse>() {
+            @Override
+            public void onResponse(Call<com.octania.marketplace.data.model.response.AdBannerResponse> call, Response<com.octania.marketplace.data.model.response.AdBannerResponse> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    com.octania.marketplace.data.model.response.AdBannerResponse res = response.body();
+                    if (res.getData() != null) {
+                        Log.d("ADS_DEBUG", "Success fetching ads. Count: " + res.getData().size());
+                        productAdapter.setAdBanners(res.getData());
+                    }
+                } else {
+                    Log.e("ADS_DEBUG", "Failed to fetch ads: " + response.code());
+                }
+            }
+
+            @Override
+            public void onFailure(Call<com.octania.marketplace.data.model.response.AdBannerResponse> call, Throwable t) {
+                Log.e("ADS_DEBUG", "Error fetching ads: " + t.getMessage());
+            }
+        });
+    }
 
     private void setupCategoryRecycler() {
         categoryAdapter = new CategoryAdapter(this, (categoryName, position) -> {
@@ -389,9 +412,6 @@ public class HomeActivity extends AppCompatActivity {
                                         }.getType();
                                         List<Product> products = gson.fromJson(json, listType);
 
-                                        // DEBUG: Log product count
-                                        System.out.println("=== DEBUG: Products loaded: " + (products != null ? products.size() : 0));
-
                                         // Ensure products list is not null
                                         if (products == null) {
                                             products = new ArrayList<>();
@@ -409,96 +429,35 @@ public class HomeActivity extends AppCompatActivity {
                                             }
                                         }
 
-                                        System.out.println("=== DEBUG: Products with ads: " + productsWithAds.size());
                                         productAdapter.updateData(productsWithAds);
-                                        
-                                        // TEST: Add hardcoded product if empty
-                                        if (productsWithAds.isEmpty()) {
-                                            System.out.println("=== DEBUG: Adding hardcoded test product");
-                                            Product testProduct = new Product();
-                                            testProduct.setId(999);
-                                            testProduct.setName("TEST PRODUCT - DISCOUNT 50%");
-                                            testProduct.setPrice(20000);
-                                            testProduct.setImage("");
-                                            testProduct.setEffectivePrice(10000);
-                                            testProduct.setHasDiscount(true);
-                                            testProduct.setDiscountPercent(50.0);
-                                            
-                                            List<Product> testList = new ArrayList<>();
-                                            testList.add(testProduct);
-                                            productAdapter.updateData(testList);
-                                        }
                                     } else {
-                                        // No data items
-                                        System.out.println("=== DEBUG: No data items found - adding hardcoded test");
-                                        Product testProduct = new Product();
-                                        testProduct.setId(999);
-                                        testProduct.setName("TEST PRODUCT (NO DATA)");
-                                        testProduct.setPrice(10000);
-                                        testProduct.setImage("");
-                                        testProduct.setEffectivePrice(10000);
-                                        testProduct.setHasDiscount(false);
-                                        
-                                        List<Product> testList = new ArrayList<>();
-                                        testList.add(testProduct);
-                                        productAdapter.updateData(testList);
+                                        // No data items - tampilkan empty state
+                                        productAdapter.updateData(new ArrayList<>());
                                     }
                                 } catch (Exception e) {
                                     e.printStackTrace();
-                                    // Fallback: show empty state
                                     productAdapter.updateData(new ArrayList<>());
                                     ToastManager.showToast(HomeActivity.this,
                                             getString(R.string.server_error));
                                 }
                             } else {
-                                // API not success or no data
-                                System.out.println("=== DEBUG: API not success - adding hardcoded test");
-                                Product testProduct = new Product();
-                                testProduct.setId(999);
-                                testProduct.setName("TEST PRODUCT (API ERROR)");
-                                testProduct.setPrice(10000);
-                                testProduct.setImage("");
-                                testProduct.setEffectivePrice(10000);
-                                testProduct.setHasDiscount(false);
-                                
-                                List<Product> testList = new ArrayList<>();
-                                testList.add(testProduct);
-                                productAdapter.updateData(testList);
+                                // API tidak sukses atau tidak ada data
+                                productAdapter.updateData(new ArrayList<>());
+                                ToastManager.showToast(HomeActivity.this,
+                                        getString(R.string.server_error));
                             }
                         } else {
-                            // Response not successful
-                            System.out.println("=== DEBUG: Response not successful - adding hardcoded test");
-                            Product testProduct = new Product();
-                            testProduct.setId(999);
-                            testProduct.setName("TEST PRODUCT (RESPONSE ERROR)");
-                            testProduct.setPrice(10000);
-                            testProduct.setImage("");
-                            testProduct.setEffectivePrice(10000);
-                            testProduct.setHasDiscount(false);
-                            
-                            List<Product> testList = new ArrayList<>();
-                            testList.add(testProduct);
-                            productAdapter.updateData(testList);
+                            // Response gagal
+                            productAdapter.updateData(new ArrayList<>());
+                            ToastManager.showToast(HomeActivity.this,
+                                    getString(R.string.server_error));
                         }
                     }
 
                     @Override
                     public void onFailure(Call<ApiResponse<Object>> call, Throwable t) {
                         binding.swipeRefresh.setRefreshing(false);
-                        
-                        System.out.println("=== DEBUG: Network failure - adding hardcoded test");
-                        Product testProduct = new Product();
-                        testProduct.setId(999);
-                        testProduct.setName("TEST PRODUCT (NETWORK ERROR)");
-                        testProduct.setPrice(10000);
-                        testProduct.setImage("");
-                        testProduct.setEffectivePrice(10000);
-                        testProduct.setHasDiscount(false);
-                        
-                        List<Product> testList = new ArrayList<>();
-                        testList.add(testProduct);
-                        productAdapter.updateData(testList);
-                        
+                        productAdapter.updateData(new ArrayList<>());
                         ToastManager.showToast(HomeActivity.this,
                                 getString(R.string.network_error) + ": " + t.getMessage());
                     }

@@ -40,7 +40,9 @@ public interface ApiService {
                         @Field("password_confirmation") String passwordConfirmation,
                         @Field("role") String role,
                         @Field("shop_name") String shopName,
-                        @Field("address") String address);
+                        @Field("address") String address,
+                        @Field("latitude") Double latitude,
+                        @Field("longitude") Double longitude);
 
         @POST("logout")
         Call<ApiResponse<Void>> logout(

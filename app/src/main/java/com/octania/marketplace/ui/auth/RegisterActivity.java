@@ -15,6 +15,10 @@ import com.octania.marketplace.databinding.ActivityRegisterBinding;
 import com.octania.marketplace.ui.home.HomeActivity;
 import com.octania.marketplace.utils.SessionManager;
 
+import com.octania.marketplace.ui.profile.MapPickerActivity;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -23,6 +27,21 @@ public class RegisterActivity extends AppCompatActivity {
     private ActivityRegisterBinding binding;
     private ApiService apiService;
     private SessionManager sessionManager;
+
+    private Double lat = null;
+    private Double lng = null;
+
+    private final ActivityResultLauncher<Intent> mapLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    String address = result.getData().getStringExtra("picked_address");
+                    lat = result.getData().getDoubleExtra("lat", 0);
+                    lng = result.getData().getDoubleExtra("lng", 0);
+                    binding.etAddress.setText(address);
+                }
+            }
+    );
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,6 +54,12 @@ public class RegisterActivity extends AppCompatActivity {
 
         // Setup toolbar navigation
         binding.toolbar.setNavigationOnClickListener(v -> finish());
+
+        // Setup Map Picker Icon
+        binding.tilAddress.setEndIconOnClickListener(v -> {
+            Intent intent = new Intent(this, MapPickerActivity.class);
+            mapLauncher.launch(intent);
+        });
 
         // Setup password strength indicator
         binding.etPassword.addTextChangedListener(new android.text.TextWatcher() {
@@ -167,6 +192,8 @@ public class RegisterActivity extends AppCompatActivity {
         } else {
             shopName = null;
             address = null;
+            lat = null;
+            lng = null;
         }
 
         if (!binding.cbTerms.isChecked()) {
@@ -181,7 +208,7 @@ public class RegisterActivity extends AppCompatActivity {
 
         setLoading(true);
 
-        apiService.register(name, email, phone, password, confirmPassword, role, shopName, address).enqueue(new Callback<AuthResponse>() {
+        apiService.register(name, email, phone, password, confirmPassword, role, shopName, address, lat, lng).enqueue(new Callback<AuthResponse>() {
             @Override
             public void onResponse(Call<AuthResponse> call, Response<AuthResponse> response) {
                 setLoading(false);

@@ -43,6 +43,8 @@ public class EditProductActivity extends AppCompatActivity {
     private static final String[] CONDITIONS = { "new", "used", "like_new", "good", "fair" };
     private static final String[] CONDITION_LABELS = { "Baru", "Bekas", "Seperti Baru", "Bagus", "Cukup" };
 
+    private final String[] weightUnits = { "gr", "kg" };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -67,6 +69,12 @@ public class EditProductActivity extends AppCompatActivity {
                 this, android.R.layout.simple_spinner_item, CONDITION_LABELS);
         conditionAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         binding.spCondition.setAdapter(conditionAdapter);
+
+        // Weight units spinner
+        ArrayAdapter<String> weightAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item,
+                weightUnits);
+        weightAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        binding.spWeightUnit.setAdapter(weightAdapter);
 
         fetchCategories();
         fetchProductDetail();
@@ -146,7 +154,19 @@ public class EditProductActivity extends AppCompatActivity {
         }
 
         binding.etStock.setText(String.valueOf(product.getStock()));
-        binding.etWeight.setText(product.getWeight() != null ? String.valueOf(product.getWeight()) : "");
+
+        // Handle weight display
+        if (product.getWeight() != null) {
+            int w = product.getWeight();
+            if (w >= 1000 && w % 100 == 0) {
+                binding.etWeight.setText(String.valueOf(w / 1000.0));
+                binding.spWeightUnit.setSelection(1); // KG
+            } else {
+                binding.etWeight.setText(String.valueOf(w));
+                binding.spWeightUnit.setSelection(0); // GR
+            }
+        }
+
         binding.etLocation.setText(product.getLocation() != null ? product.getLocation() : "");
         binding.etDescription.setText(product.getDescription() != null ? product.getDescription() : "");
 
@@ -191,7 +211,21 @@ public class EditProductActivity extends AppCompatActivity {
 
         double price = Double.parseDouble(priceStr);
         int stock = Integer.parseInt(stockStr);
-        int weight = weightStr.isEmpty() ? 1000 : Integer.parseInt(weightStr);
+
+        int weight = 1000;
+        if (!weightStr.isEmpty()) {
+            try {
+                double w = Double.parseDouble(weightStr);
+                String unit = binding.spWeightUnit.getSelectedItem().toString();
+                if ("kg".equals(unit)) {
+                    w = w * 1000;
+                }
+                weight = (int) w;
+            } catch (Exception e) {
+                weight = 1000;
+            }
+        }
+
         Double discountPrice = discountStr.isEmpty() ? null : Double.parseDouble(discountStr);
 
         int categoryId = categoryIds.isEmpty() ? 1 : categoryIds.get(binding.spCategory.getSelectedItemPosition());

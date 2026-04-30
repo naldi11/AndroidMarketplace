@@ -292,19 +292,33 @@
                         android:textColor="@color/text_dark"
                         android:layout_marginBottom="16dp" />
 
-                    <com.google.android.material.textfield.TextInputLayout
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Berat Produk"
-                        app:suffixText="Gram"
-                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/etWeight"
-                            android:layout_width="match_parent"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:inputType="number"
-                            android:textSize="14sp" />
-                    </com.google.android.material.textfield.TextInputLayout>
+                            android:layout_weight="1"
+                            android:hint="Berat Produk"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/etWeight"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="numberDecimal"
+                                android:textSize="14sp" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <Spinner
+                            android:id="@+id/spinnerWeightUnit"
+                            android:layout_width="100dp"
+                            android:layout_height="56dp"
+                            android:layout_marginTop="8dp"
+                            android:layout_marginStart="8dp"
+                            android:background="@drawable/bg_spinner" />
+                    </LinearLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/tilLocation"

@@ -21,11 +21,11 @@
             android:background="#FFECE0">
 
             <ImageView
-                android:layout_width="80dp"
-                android:layout_height="80dp"
-                android:layout_gravity="center"
-                android:src="@android:drawable/ic_menu_gallery"
-                app:tint="#FFD2B8" />
+                android:id="@+id/ivBanner"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:src="@android:drawable/ic_menu_gallery" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -47,11 +47,12 @@
             android:padding="8dp">
 
             <TextView
+                android:id="@+id/tvAdTitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:ellipsize="end"
                 android:maxLines="2"
-                android:text="Promo Spesial! Diskon s/d 50% untuk Pengguna Baru."
+                android:text="Iklan Sponsor"
                 android:textColor="#333333"
                 android:textSize="12sp"
                 android:textStyle="bold" />

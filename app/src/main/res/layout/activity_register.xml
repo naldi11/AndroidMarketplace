@@ -198,6 +198,9 @@
                             android:hint="Alamat Toko"
                             app:startIconDrawable="@drawable/ic_location"
                             app:startIconTint="@color/primary_orange"
+                            app:endIconMode="custom"
+                            app:endIconDrawable="@drawable/ic_location"
+                            app:endIconTint="@color/primary_orange"
                             app:boxStrokeColor="@color/primary_orange"
                             app:hintTextColor="@color/primary_orange">
 
