@@ -10,6 +10,8 @@ import android.database.Cursor;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.octania.marketplace.data.model.ApiResponse;
@@ -18,6 +20,9 @@ import com.octania.marketplace.data.remote.ApiService;
 import com.octania.marketplace.databinding.ActivityPaymentBinding;
 import com.octania.marketplace.ui.home.HomeActivity;
 import com.octania.marketplace.utils.SessionManager;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -34,14 +39,15 @@ public class PaymentActivity extends AppCompatActivity {
     private SessionManager sessionManager;
     private ApiService apiService;
     private int transactionId = -1;
-    private Uri selectedImageUri = null;
+    private List<Uri> selectedImageUris = new ArrayList<>();
+    private ProofImageAdapter proofImageAdapter;
 
     private final ActivityResultLauncher<Intent> filePickerLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
                 if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                    selectedImageUri = result.getData().getData();
-                    Glide.with(this).load(selectedImageUri).into(binding.ivProofPreview);
+                    selectedImageUris.add(result.getData().getData());
+                    proofImageAdapter.notifyDataSetChanged();
                     binding.btnSubmitProof.setEnabled(true);
                 }
             });
@@ -73,13 +79,13 @@ public class PaymentActivity extends AppCompatActivity {
                 .setText("Silakan transfer ke rekening BCA 1234567890 a.n Octania Market.\n\nSimpan pesanan ini ID #"
                         + transactionId + " sebagai referensi berita acara Anda.");
 
-        binding.btnSelectProof.setOnClickListener(v -> {
-            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-            intent.setType("image/*");
-            filePickerLauncher.launch(intent);
-        });
+        // Setup RecyclerView for multiple proof images
+        proofImageAdapter = new ProofImageAdapter(this, selectedImageUris);
+        binding.rvProofImages.setLayoutManager(new LinearLayoutManager(this, RecyclerView.HORIZONTAL, false));
+        binding.rvProofImages.setAdapter(proofImageAdapter);
 
-        binding.btnSubmitProof.setOnClickListener(v -> submitProof());
+        binding.btnSelectProof.setOnClickListener(v -> openImageChooser());
+        binding.btnSubmitProof.setOnClickListener(v -> showConfirmationDialog());
         binding.btnPayLater.setOnClickListener(v -> {
             Intent intent = new Intent(this, HomeActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -87,8 +93,22 @@ public class PaymentActivity extends AppCompatActivity {
         });
     }
 
+    private void openImageChooser() {
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType("image/*");
+        filePickerLauncher.launch(intent);
+    }
+
+    private void showConfirmationDialog() {
+        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
+        builder.setMessage("Apakah Anda yakin ingin mengunggah bukti pembayaran?");
+        builder.setPositiveButton("Ya", (dialog, which) -> submitProof());
+        builder.setNegativeButton("Tidak", (dialog, which) -> dialog.dismiss());
+        builder.show();
+    }
+
     private void submitProof() {
-        if (selectedImageUri == null) {
+        if (selectedImageUris.isEmpty()) {
             Toast.makeText(this, "Pilih gambar bukti bayar dulu", Toast.LENGTH_SHORT).show();
             return;
         }
@@ -97,7 +117,9 @@ public class PaymentActivity extends AppCompatActivity {
         binding.btnSubmitProof.setText("Mengunggah...");
 
         try {
-            java.io.File imageFile = createTempFileFromUri(selectedImageUri);
+            // For now, upload first image only (can be extended for multiple uploads)
+            Uri firstImageUri = selectedImageUris.get(0);
+            java.io.File imageFile = createTempFileFromUri(firstImageUri);
             RequestBody requestFile = RequestBody.create(MediaType.parse("image/jpeg"), imageFile);
             MultipartBody.Part body = MultipartBody.Part.createFormData("proof_of_payment", imageFile.getName(),
                     requestFile);

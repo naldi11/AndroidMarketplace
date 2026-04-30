@@ -155,6 +155,7 @@
 
             <!-- ===== CARD: Pesanan Saya ===== -->
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardPesananSaya"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="10dp"
@@ -218,17 +219,12 @@
                             android:clickable="true"
                             android:focusable="true">
 
-                            <FrameLayout
-                                android:layout_width="44dp"
-                                android:layout_height="44dp">
-
-                                <ImageView
-                                    android:layout_width="36dp"
-                                    android:layout_height="36dp"
-                                    android:layout_gravity="center"
-                                    android:src="@drawable/ic_wallet"
-                                    app:tint="#E65100" />
-                            </FrameLayout>
+                            <ImageView
+                                android:layout_width="36dp"
+                                android:layout_height="36dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/ic_wallet"
+                                app:tint="#E65100" />
 
                             <TextView
                                 android:layout_width="wrap_content"
@@ -332,6 +328,7 @@
 
             <!-- ===== CARD: Toko Saya ===== -->
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardTokoSaya"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="10dp"

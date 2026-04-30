@@ -16,8 +16,8 @@ import com.octania.marketplace.data.model.CartItem;
 import com.octania.marketplace.data.remote.ApiClient;
 import com.octania.marketplace.data.remote.ApiService;
 import com.octania.marketplace.databinding.ActivityCartBinding;
-import com.octania.marketplace.ui.cart.CheckoutActivity;
 import com.octania.marketplace.ui.home.HomeActivity;
+import com.octania.marketplace.ui.product.ProductDetailActivity;
 import com.octania.marketplace.utils.SessionManager;
 
 import java.lang.reflect.Type;
@@ -78,6 +78,16 @@ public class CartActivity extends AppCompatActivity {
             @Override
             public void onQuantityChanged(CartItem item, int position, int newQuantity) {
                 updateCartItemQuantity(item, position, newQuantity);
+            }
+
+            @Override
+            public void onItemClick(CartItem item, int position) {
+                if (item.getProduct() != null) {
+                    int productId = item.getProduct().getId();
+                    Intent intent = new Intent(CartActivity.this, ProductDetailActivity.class);
+                    intent.putExtra(ProductDetailActivity.EXTRA_PRODUCT_ID, productId);
+                    startActivity(intent);
+                }
             }
         });
         binding.rvCartItems.setAdapter(cartAdapter);

@@ -356,6 +356,31 @@
                             android:textColor="#333333"
                             android:textSize="14sp"/>
                     </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/layoutAdminFee"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:visibility="gone"
+                        android:layout_marginBottom="4dp">
+                        
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Biaya Admin (Pembayaran)"
+                            android:textColor="#555555"
+                            android:textSize="14sp"/>
+
+                        <TextView
+                            android:id="@+id/tvAdminFee"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Rp 0"
+                            android:textColor="#333333"
+                            android:textSize="14sp"/>
+                    </LinearLayout>
                     
                     <LinearLayout
                         android:id="@+id/layoutDiscount"
@@ -363,7 +388,7 @@
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
                         android:visibility="gone"
-                        android:layout_marginBottom="8dp">
+                        android:layout_marginBottom="4dp">
                         
                         <TextView
                             android:layout_width="0dp"
@@ -381,6 +406,17 @@
                             android:textColor="#E53935"
                             android:textSize="14sp"/>
                     </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tvVoucherTerms"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="S&amp;K: -"
+                        android:textColor="#666666"
+                        android:textSize="12sp"
+                        android:textStyle="italic"
+                        android:visibility="gone"
+                        android:layout_marginBottom="8dp"/>
 
                     <View
                         android:layout_width="match_parent"

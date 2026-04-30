@@ -28,6 +28,8 @@ public class CartAdapter extends RecyclerView.Adapter<CartAdapter.CartViewHolder
         void onCheckChanged(CartItem item, int position, boolean isChecked);
 
         void onQuantityChanged(CartItem item, int position, int newQuantity);
+
+        void onItemClick(CartItem item, int position);
     }
 
     public CartAdapter(Context context, OnCartItemListener listener) {
@@ -74,6 +76,13 @@ public class CartAdapter extends RecyclerView.Adapter<CartAdapter.CartViewHolder
         public CartViewHolder(ItemCartBinding binding) {
             super(binding.getRoot());
             this.binding = binding;
+
+            binding.getRoot().setOnClickListener(v -> {
+                int pos = getAdapterPosition();
+                if (pos != RecyclerView.NO_POSITION) {
+                    listener.onItemClick(cartItems.get(pos), pos);
+                }
+            });
 
             binding.btnRemoveCartItem.setOnClickListener(v -> {
                 int pos = getAdapterPosition();

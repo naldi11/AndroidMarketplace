@@ -65,6 +65,22 @@
                 android:clipToPadding="false"
                 android:paddingBottom="80dp" />
         </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <com.google.android.material.bottomnavigation.BottomNavigationView
+                android:id="@+id/bottomNav"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_bottom_nav"
+                android:elevation="12dp"
+                app:itemIconTint="@color/nav_item_color"
+                app:itemTextColor="@color/nav_item_color"
+                app:itemRippleColor="@color/orange_10"
+                app:menu="@menu/bottom_nav_seller" />
+        </FrameLayout>
+
     </LinearLayout>
 
     <!-- FAB Add Product -->
@@ -73,7 +89,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:layout_margin="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="72dp"
         android:src="@android:drawable/ic_input_add"
         app:tint="@color/white"
         app:backgroundTint="@color/primary_orange"

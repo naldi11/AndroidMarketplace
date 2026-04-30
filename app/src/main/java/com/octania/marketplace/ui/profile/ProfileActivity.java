@@ -112,7 +112,26 @@ public class ProfileActivity extends AppCompatActivity {
             bottomNav.setSelectedItemId(R.id.nav_profile);
             com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(bottomNav);
         }
+        
+        applyRoleBasedUI();
         loadUserProfile();
+    }
+
+    private void applyRoleBasedUI() {
+        String role = sessionManager.getActiveRole();
+        if ("buyer".equals(role)) {
+            // Hide specific seller features in profile if logged in as buyer
+            View cardTokoSaya = findViewById(R.id.cardTokoSaya);
+            if (cardTokoSaya != null) cardTokoSaya.setVisibility(View.GONE);
+        } else {
+            // Logged in as seller
+            View cardTokoSaya = findViewById(R.id.cardTokoSaya);
+            if (cardTokoSaya != null) cardTokoSaya.setVisibility(View.VISIBLE);
+            
+            // Hide the order shortcut area if you want to cleanly separate it
+            View cardPesananSaya = findViewById(R.id.cardPesananSaya);
+            if (cardPesananSaya != null) cardPesananSaya.setVisibility(View.GONE);
+        }
     }
 
     // ===== View Binding =====
@@ -173,32 +192,53 @@ public class ProfileActivity extends AppCompatActivity {
 
     private void setupBottomNav() {
         BottomNavigationView bottomNav = findViewById(R.id.bottomNav);
-        if (bottomNav == null)
-            return;
+        if (bottomNav == null) return;
+
+        String role = sessionManager.getActiveRole();
+        bottomNav.getMenu().clear();
+        if ("seller".equals(role)) {
+            bottomNav.inflateMenu(R.menu.bottom_nav_seller);
+        } else {
+            bottomNav.inflateMenu(R.menu.bottom_nav_buyer);
+        }
 
         bottomNav.setSelectedItemId(R.id.nav_profile);
         com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(bottomNav);
 
         bottomNav.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
-            if (id == R.id.nav_home) {
-                startActivity(new Intent(this, com.octania.marketplace.ui.home.HomeActivity.class));
-                finish();
+            if (id == R.id.nav_profile) {
                 return true;
-            } else if (id == R.id.nav_orders) {
-                startActivity(new Intent(this, SellerOrdersActivity.class));
-                finish();
-                return true;
-            } else if (id == R.id.nav_add) {
-                startActivity(new Intent(this, com.octania.marketplace.ui.product.AddProductActivity.class));
-                finish();
-                return true;
-            } else if (id == R.id.nav_wishlist) {
-                startActivity(new Intent(this, WishlistActivity.class));
-                finish();
-                return true;
-            } else if (id == R.id.nav_profile) {
-                return true;
+            }
+
+            if ("seller".equals(role)) {
+                if (id == R.id.nav_home) {
+                    startActivity(new Intent(this, com.octania.marketplace.ui.seller.SellerDashboardActivity.class));
+                    finish();
+                    return true;
+                } else if (id == R.id.nav_add) {
+                    startActivity(new Intent(this, com.octania.marketplace.ui.product.MyProductsActivity.class));
+                    finish();
+                    return true;
+                } else if (id == R.id.nav_orders) {
+                    startActivity(new Intent(this, SellerOrdersActivity.class));
+                    finish();
+                    return true;
+                }
+            } else {
+                if (id == R.id.nav_home) {
+                    startActivity(new Intent(this, com.octania.marketplace.ui.home.HomeActivity.class));
+                    finish();
+                    return true;
+                } else if (id == R.id.nav_orders) {
+                    startActivity(new Intent(this, com.octania.marketplace.ui.seller.MyOrdersActivity.class));
+                    finish();
+                    return true;
+                } else if (id == R.id.nav_wishlist) {
+                    startActivity(new Intent(this, WishlistActivity.class));
+                    finish();
+                    return true;
+                }
             }
             return false;
         });

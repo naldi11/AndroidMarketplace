@@ -47,8 +47,16 @@ public class Product {
         return id;
     }
 
+    public void setId(int id) {
+        this.id = id;
+    }
+
     public String getName() {
         return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public String getSlug() {
@@ -63,12 +71,20 @@ public class Product {
         return price;
     }
 
+    public void setPrice(double price) {
+        this.price = price;
+    }
+
     public double getOriginalPrice() {
         return price; // In the database, `price` is the original price before discount
     }
 
     public String getImage() {
         return image;
+    }
+
+    public void setImage(String image) {
+        this.image = image;
     }
 
     public int getStock() {
@@ -87,8 +103,20 @@ public class Product {
         return effectivePrice;
     }
 
+    public void setEffectivePrice(double effectivePrice) {
+        this.effectivePrice = effectivePrice;
+    }
+
     public boolean isHasDiscount() {
         return hasDiscount;
+    }
+
+    public void setHasDiscount(boolean hasDiscount) {
+        this.hasDiscount = hasDiscount;
+    }
+
+    public void setDiscountPercent(Double discountPercent) {
+        this.discountPercent = discountPercent;
     }
 
     public boolean isWishlisted() {

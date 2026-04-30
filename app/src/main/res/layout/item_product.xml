@@ -54,26 +54,12 @@
                 android:backgroundTint="@color/primary_orange"
                 android:paddingHorizontal="8dp"
                 android:paddingVertical="3dp"
-                android:text="-0%"
+                android:text="-50%"
                 android:textColor="@color/white"
                 android:textSize="10sp"
                 android:textStyle="bold"
-                android:visibility="gone" />
+                android:visibility="visible" />
 
-            <!-- Price Glass Tag (bottom-right) -->
-            <TextView
-                android:id="@+id/tvPriceTag"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="bottom|end"
-                android:layout_margin="8dp"
-                android:background="@drawable/bg_price_tag"
-                android:paddingHorizontal="10dp"
-                android:paddingVertical="4dp"
-                android:text="Rp 0"
-                android:textColor="@color/white"
-                android:textSize="12sp"
-                android:textStyle="bold" />
         </FrameLayout>
 
         <!-- Product Info -->

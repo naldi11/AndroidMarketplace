@@ -37,7 +37,10 @@ public interface ApiService {
                         @Field("email") String email,
                         @Field("phone") String phone,
                         @Field("password") String password,
-                        @Field("password_confirmation") String passwordConfirmation);
+                        @Field("password_confirmation") String passwordConfirmation,
+                        @Field("role") String role,
+                        @Field("shop_name") String shopName,
+                        @Field("address") String address);
 
         @POST("logout")
         Call<ApiResponse<Void>> logout(
@@ -77,6 +80,9 @@ public interface ApiService {
 
         @GET("categories")
         Call<ApiResponse<Object>> getCategories();
+
+        @GET("ad-banners")
+        Call<com.octania.marketplace.data.model.response.AdBannerResponse> getAdBanners();
 
         @GET("products/{id}")
         Call<ApiResponse<Product>> getProductDetail(
@@ -172,7 +178,9 @@ public interface ApiService {
                         @retrofit2.http.Path("id") int addressId,
                         @retrofit2.http.Field("recipient_name") String recipientName,
                         @retrofit2.http.Field("phone") String phone,
-                        @retrofit2.http.Field("full_address") String fullAddress);
+                        @retrofit2.http.Field("full_address") String fullAddress,
+                        @retrofit2.http.Field("latitude") Double latitude,
+                        @retrofit2.http.Field("longitude") Double longitude);
 
         @retrofit2.http.DELETE("profile/addresses/{id}")
         Call<ApiResponse<Object>> deleteAddress(
@@ -329,9 +337,24 @@ public interface ApiService {
                         @Header("Authorization") String token,
                         @Field("status") String status);
 
-        @FormUrlEncoded
-        @POST("transactions/mark-seen")
-        Call<ApiResponse<Object>> markBuyerOrdersSeen(
-                        @Header("Authorization") String token,
-                        @Field("status") String status);
+@FormUrlEncoded
+@POST("transactions/mark-seen")
+Call<ApiResponse<Object>> markBuyerOrdersSeen(
+        @Header("Authorization") String token,
+        @Field("status") String status);
+
+// ===== Seller Dashboard =====
+@GET("seller/dashboard")
+Call<ApiResponse<Object>> getSellerDashboard(
+        @Header("Authorization") String token);
+
+// ===== Reports =====
+@FormUrlEncoded
+@POST("reports")
+Call<ApiResponse<Object>> submitReport(
+        @Header("Authorization") String token,
+        @Field("transaction_id") int transactionId,
+        @Field("type") String type,
+        @Field("reason") String reason,
+        @Field("description") String description);
 }

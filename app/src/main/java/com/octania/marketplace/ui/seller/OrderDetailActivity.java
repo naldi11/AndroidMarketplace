@@ -27,6 +27,7 @@ import com.octania.marketplace.data.model.ApiResponse;
 import com.octania.marketplace.data.remote.ApiClient;
 import com.octania.marketplace.data.remote.ApiService;
 import com.octania.marketplace.utils.SessionManager;
+import com.octania.marketplace.utils.ToastManager;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -56,10 +57,11 @@ public class OrderDetailActivity extends AppCompatActivity {
 
     // Views
     private TextView tvShopName, tvOrderId, tvStatus, tvOrderDate, tvRejectionReason;
-    private TextView tvSubtotal, tvDiscount, tvServiceFee, tvTotal;
+    private TextView tvSubtotal, tvDiscount, tvShippingCost, tvServiceFee, tvTotal;
     private TextView tvPaymentMethod, tvShippingAddress, tvCourier, tvTrackingNumber;
-    private LinearLayout llItems, rowDiscount;
+    private LinearLayout llItems, rowDiscount, rowShippingCost;
     private MaterialButton btnAction, btnCancel;
+    private MaterialButton btnReport, btnContactAdmin;
     private MaterialCardView cardProof;
     private ImageView ivProofImage;
     private TextView tvProofTitle;
@@ -86,7 +88,7 @@ public class OrderDetailActivity extends AppCompatActivity {
         setupPaymentProofPicker();
 
         if (transactionId == -1) {
-            Toast.makeText(this, "ID Pesanan tidak valid", Toast.LENGTH_SHORT).show();
+            ToastManager.showToast(this, "ID Pesanan tidak valid");
             finish();
             return;
         }
@@ -112,6 +114,8 @@ public class OrderDetailActivity extends AppCompatActivity {
         tvRejectionReason = findViewById(R.id.tvRejectionReason);
         tvSubtotal = findViewById(R.id.tvSubtotal);
         tvDiscount = findViewById(R.id.tvDiscount);
+        tvShippingCost = findViewById(R.id.tvShippingCost);
+        rowShippingCost = findViewById(R.id.rowShippingCost);
         tvServiceFee = findViewById(R.id.tvServiceFee);
         tvTotal = findViewById(R.id.tvTotal);
         tvPaymentMethod = findViewById(R.id.tvPaymentMethod);
@@ -127,6 +131,8 @@ public class OrderDetailActivity extends AppCompatActivity {
         ivProofImage = findViewById(R.id.ivProofImage);
         cardReceiptProofs = findViewById(R.id.cardReceiptProofs);
         llReceiptProofs = findViewById(R.id.llReceiptProofs);
+        btnReport = findViewById(R.id.btnReport);
+        btnContactAdmin = findViewById(R.id.btnContactAdmin);
     }
 
     private void setupFilePicker() {
@@ -184,8 +190,7 @@ public class OrderDetailActivity extends AppCompatActivity {
                             renderDetail((Map<String, Object>) data);
                         } catch (Exception e) {
                             android.util.Log.e("OrderDetail", "Render Error: " + e.getMessage());
-                            Toast.makeText(OrderDetailActivity.this, "Gagal menampilkan detail: " + e.getMessage(),
-                                    Toast.LENGTH_SHORT).show();
+                            ToastManager.showToast(OrderDetailActivity.this, "Gagal menampilkan detail: " + e.getMessage());
                         }
                     }
                 } else {
@@ -197,15 +202,14 @@ public class OrderDetailActivity extends AppCompatActivity {
                     } catch (Exception ignored) {
                     }
                     android.util.Log.e("OrderDetail", error);
-                    Toast.makeText(OrderDetailActivity.this, error, Toast.LENGTH_LONG).show();
+                    ToastManager.showLongToast(OrderDetailActivity.this, error);
                 }
             }
 
-            @Override
             public void onFailure(Call<ApiResponse<Object>> call, Throwable t) {
                 android.util.Log.e("OrderDetail", "Network Error: " + t.getMessage());
-                Toast.makeText(OrderDetailActivity.this, "Jaringan error: " + t.getMessage(), Toast.LENGTH_SHORT)
-                        .show();
+                ToastManager.showToast(OrderDetailActivity.this, "Jaringan error: " + t.getMessage());
+                finish();
             }
         });
     }
@@ -262,6 +266,7 @@ public class OrderDetailActivity extends AppCompatActivity {
 
         // Pricing
         double discount = parseDouble(order.get("discount_total"));
+        double shippingCost = parseDouble(order.get("shipping_cost"));
         double serviceFee = parseDouble(order.get("service_fee"));
         double total = parseDouble(order.get("total_amount"));
 
@@ -274,6 +279,13 @@ public class OrderDetailActivity extends AppCompatActivity {
             tvDiscount.setText("- " + formatRp(discount));
         } else {
             rowDiscount.setVisibility(View.GONE);
+        }
+
+        if (shippingCost > 0) {
+            rowShippingCost.setVisibility(View.VISIBLE);
+            tvShippingCost.setText(formatRp(shippingCost));
+        } else {
+            rowShippingCost.setVisibility(View.GONE);
         }
 
         // Payment + shipping info
@@ -343,6 +355,116 @@ public class OrderDetailActivity extends AppCompatActivity {
         // Action button
         Map<String, Object> existingReview = (Map<String, Object>) order.get("review");
         setupActionButton(status, txId, existingReview);
+        setupReportButtons(txId);
+    }
+
+    private void setupReportButtons(int txId) {
+        btnReport.setOnClickListener(v -> showReportDialog(txId));
+        btnContactAdmin.setOnClickListener(v -> contactAdminWhatsApp(txId));
+    }
+
+    private void contactAdminWhatsApp(int txId) {
+        String token = "Bearer " + sessionManager.getToken();
+        apiService.getSettingByKey("admin_whatsapp").enqueue(new Callback<ApiResponse<Map<String, String>>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<Map<String, String>>> call,
+                    Response<ApiResponse<Map<String, String>>> response) {
+                String waNumber = "628123456789"; // Default fallback
+                if (response.isSuccessful() && response.body() != null && response.body().getData() != null) {
+                    waNumber = response.body().getData().get("value");
+                }
+
+                String message = "Halo Admin, Saya ingin melaporkan masalah terkait pesanan #INV-"
+                        + String.format("%05d", txId) + ". [Tuliskan keluhan Anda di sini]";
+                String url = "https://api.whatsapp.com/send?phone=" + waNumber + "&text=" + Uri.encode(message);
+
+                try {
+                    Intent intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setData(Uri.parse(url));
+                    startActivity(intent);
+                } catch (Exception e) {
+                    ToastManager.showToast(OrderDetailActivity.this, "Gagal membuka WhatsApp");
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<Map<String, String>>> call, Throwable t) {
+                // Just use fallback if network fails
+                String message = "Halo Admin, Saya ingin melaporkan masalah terkait pesanan #INV-"
+                        + String.format("%05d", txId);
+                String url = "https://api.whatsapp.com/send?phone=628123456789&text=" + Uri.encode(message);
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                intent.setData(Uri.parse(url));
+                startActivity(intent);
+            }
+        });
+    }
+
+    private void showReportDialog(int txId) {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.dialog_report_issue, null);
+        dialog.setContentView(view);
+
+        com.google.android.material.button.MaterialButtonToggleGroup toggleGroup = view.findViewById(R.id.toggleGroup);
+        com.google.android.material.textfield.TextInputEditText etReason = view.findViewById(R.id.etReason);
+        com.google.android.material.textfield.TextInputEditText etDescription = view.findViewById(R.id.etDescription);
+        MaterialButton btnSubmit = view.findViewById(R.id.btnSubmitReport);
+
+        btnSubmit.setOnClickListener(v -> {
+            String type = toggleGroup.getCheckedButtonId() == R.id.btnBuyerIssue ? "buyer_issue" : "seller_issue";
+            String reason = etReason.getText().toString().trim();
+            String desc = etDescription.getText().toString().trim();
+
+            if (reason.isEmpty() || desc.isEmpty()) {
+                ToastManager.showToast(this, "Mohon isi alasan dan deskripsi");
+                return;
+            }
+
+            submitReport(txId, type, reason, desc, dialog);
+        });
+
+        com.google.android.material.button.MaterialButton btnBuyerIssue = view.findViewById(R.id.btnBuyerIssue);
+        com.google.android.material.button.MaterialButton btnSellerIssue = view.findViewById(R.id.btnSellerIssue);
+
+        // Set default and hide irrelevant option based on user role
+        if (isSeller) {
+            // Seller can only report Buyer
+            btnSellerIssue.setVisibility(View.GONE);
+            toggleGroup.check(R.id.btnBuyerIssue);
+        } else {
+            // Buyer can only report Seller
+            btnBuyerIssue.setVisibility(View.GONE);
+            toggleGroup.check(R.id.btnSellerIssue);
+        }
+
+        dialog.show();
+    }
+
+    private void submitReport(int txId, String type, String reason, String desc, BottomSheetDialog dialog) {
+        String token = "Bearer " + sessionManager.getToken();
+        btnReport.setEnabled(false);
+        btnReport.setText("Mengirim Laporan...");
+
+        apiService.submitReport(token, txId, type, reason, desc).enqueue(new Callback<ApiResponse<Object>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<Object>> call, Response<ApiResponse<Object>> response) {
+                btnReport.setEnabled(true);
+                btnReport.setText("Laporkan Masalah");
+                if (response.isSuccessful()) {
+                    ToastManager.showToast(OrderDetailActivity.this, "Laporan berhasil terkirim. Admin akan segera meninjau.");
+                    dialog.dismiss();
+                } else {
+                    ToastManager.showToast(OrderDetailActivity.this, "Gagal mengirim laporan");
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<Object>> call, Throwable t) {
+                btnReport.setEnabled(true);
+                btnReport.setText("Laporkan Masalah");
+                ToastManager.showToast(OrderDetailActivity.this, "Error Jaringan: " + t.getMessage());
+            }
+        });
     }
 
     private void setupActionButton(String status, int txId, Map<String, Object> existingReview) {
@@ -380,14 +502,10 @@ public class OrderDetailActivity extends AppCompatActivity {
                     btnCancel.setText("Batalkan");
                     btnCancel.setOnClickListener(v -> cancelOrder(txId));
                 } else {
-                    btnAction.setText("Terima Pembayaran");
-                    btnAction.setEnabled(true);
-                    btnAction.setAlpha(1f);
-                    btnAction.setOnClickListener(v -> updateStatus(txId, "processing", "Pembayaran Diterima"));
-
-                    btnCancel.setVisibility(View.VISIBLE);
-                    btnCancel.setText("Tolak");
-                    btnCancel.setOnClickListener(v -> showRejectDialog(txId));
+                    btnAction.setText("Menunggu Verifikasi Admin");
+                    btnAction.setEnabled(false);
+                    btnAction.setAlpha(0.6f);
+                    btnCancel.setVisibility(View.GONE);
                 }
                 break;
 
@@ -422,7 +540,7 @@ public class OrderDetailActivity extends AppCompatActivity {
                         // Logic for shipping already exists in shipOrder (usually separate screen or
                         // dialog)
                         // For now let's just use statusLabel or manual Trigger
-                        Toast.makeText(this, "Silakan masukkan nomor resi", Toast.LENGTH_SHORT).show();
+                        ToastManager.showToast(this, "Silakan masukkan nomor resi");
                     });
                 } else {
                     btnAction.setText("Pesanan Diproses");

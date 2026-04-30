@@ -109,7 +109,7 @@ public class MyOrdersActivity extends AppCompatActivity {
 
     private void setupBottomNav() {
         // Set visual state first without listener to avoid trigger on launch
-        binding.bottomNav.setSelectedItemId(R.id.nav_profile);
+        binding.bottomNav.setSelectedItemId(R.id.nav_orders);
         com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(binding.bottomNav);
 
         binding.bottomNav.setOnItemSelectedListener(item -> {
@@ -119,19 +119,12 @@ public class MyOrdersActivity extends AppCompatActivity {
                 finish();
                 return true;
             } else if (id == R.id.nav_orders) {
-                startActivity(new Intent(this, com.octania.marketplace.ui.seller.SellerOrdersActivity.class));
-                finish();
-                return true;
-            } else if (id == R.id.nav_add) {
-                startActivity(new Intent(this, com.octania.marketplace.ui.product.AddProductActivity.class));
-                finish();
                 return true;
             } else if (id == R.id.nav_wishlist) {
                 startActivity(new Intent(this, com.octania.marketplace.ui.profile.WishlistActivity.class));
                 finish();
                 return true;
             } else if (id == R.id.nav_profile) {
-                // Manual click on Profile while already here goes back to main Profile screen
                 startActivity(new Intent(this, com.octania.marketplace.ui.profile.ProfileActivity.class));
                 finish();
                 return true;

@@ -59,10 +59,15 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
     private String appliedVoucherCode = null;
     private double discountAmount = 0;
     private double serviceFee = 0;
+    private double adminFee = 0;
     private double shippingCost = 0;
     private double subtotal = 0;
     private String deliveryType = "courier";
     private boolean isLoadingAddresses = false;
+    private Double deviceLat = null;
+    private Double deviceLng = null;
+    private Double selectedAddressLat = null;
+    private Double selectedAddressLng = null;
 
     // Direct buy (skip cart)
     private boolean isDirectBuy = false;
@@ -83,6 +88,17 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
         sessionManager = new SessionManager(this);
         apiService = ApiClient.getClient().create(ApiService.class);
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+
+        // Capture device GPS for shipping calculation fallback
+        if (ActivityCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            fusedLocationClient.getLastLocation().addOnSuccessListener(this, location -> {
+                if (location != null) {
+                    deviceLat = location.getLatitude();
+                    deviceLng = location.getLongitude();
+                }
+            });
+        }
 
         if (!sessionManager.isLoggedIn()) {
             Toast.makeText(this, "Silakan login.", Toast.LENGTH_SHORT).show();
@@ -125,6 +141,17 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
                 deliveryType = "courier";
             }
             calculateTotal();
+        });
+
+        binding.spinnerPaymentMethod.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+                calculateTotal();
+            }
+
+            @Override
+            public void onNothingSelected(android.widget.AdapterView<?> parent) {
+            }
         });
 
         loadUserAddresses();
@@ -239,12 +266,29 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
         if (selectedAddressId != -1) {
             body.put("user_address_id", selectedAddressId);
         }
+        // Send buyer coordinates for shipping calculation
+        // Priority: selected address coordinates > device GPS
+        Double buyerLat = (selectedAddressLat != null) ? selectedAddressLat : deviceLat;
+        Double buyerLng = (selectedAddressLng != null) ? selectedAddressLng : deviceLng;
+        if (buyerLat != null && buyerLng != null) {
+            body.put("buyer_latitude", buyerLat);
+            body.put("buyer_longitude", buyerLng);
+        }
         if (appliedVoucherCode != null && !appliedVoucherCode.isEmpty()) {
             body.put("voucher_code", appliedVoucherCode);
         }
 
         binding.btnPlaceOrder.setEnabled(false);
         String token = "Bearer " + sessionManager.getToken();
+        
+        // Include payment_method_id for adminFee calculation
+        if (!paymentMethodsList.isEmpty() && binding.spinnerPaymentMethod.getSelectedItemPosition() >= 0) {
+            int selectedPos = binding.spinnerPaymentMethod.getSelectedItemPosition();
+            if (selectedPos < paymentMethodsList.size()) {
+                int paymentMethodId = ((Double) paymentMethodsList.get(selectedPos).get("id")).intValue();
+                body.put("payment_method_id", paymentMethodId);
+            }
+        }
 
         apiService.previewCheckout(token, body).enqueue(new Callback<ApiResponse<Object>>() {
             @Override
@@ -257,6 +301,13 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
                             Map<String, Object> data = (Map<String, Object>) res.getData();
                             subtotal = ((Number) data.get("subtotal_product")).doubleValue();
                             serviceFee = ((Number) data.get("service_fee")).doubleValue();
+                            
+                            if (data.containsKey("admin_fee") && data.get("admin_fee") != null) {
+                                adminFee = ((Number) data.get("admin_fee")).doubleValue();
+                            } else {
+                                adminFee = 0;
+                            }
+                            
                             shippingCost = ((Number) data.get("shipping_cost")).doubleValue();
                             discountAmount = ((Number) data.get("discount")).doubleValue();
                             double grandTotal = ((Number) data.get("grand_total")).doubleValue();
@@ -264,16 +315,39 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
                             binding.tvSubtotal.setText(String.format("Rp %,.0f", subtotal));
                             binding.tvServiceFee.setText(String.format("Rp %,.0f", serviceFee));
 
+                            if (adminFee > 0) {
+                                binding.layoutAdminFee.setVisibility(View.VISIBLE);
+                                binding.tvAdminFee.setText(String.format("Rp %,.0f", adminFee));
+                            } else {
+                                binding.layoutAdminFee.setVisibility(View.GONE);
+                            }
+
                             binding.layoutShippingCost.setVisibility(View.VISIBLE);
                             binding.tvShippingCost.setText(String.format("Rp %,.0f", shippingCost));
 
                             if (discountAmount > 0) {
                                 binding.layoutDiscount.setVisibility(View.VISIBLE);
                                 binding.tvDiscount.setText(String.format("- Rp %,.0f", discountAmount));
+                                
+                                // Display terms if available
+                                Map<String, Object> voucherData = (Map<String, Object>) data.get("voucher");
+                                if (voucherData != null && voucherData.containsKey("terms")) {
+                                    String terms = String.valueOf(voucherData.get("terms"));
+                                    if (terms != null && !terms.isEmpty() && !"null".equals(terms)) {
+                                        binding.tvVoucherTerms.setVisibility(View.VISIBLE);
+                                        binding.tvVoucherTerms.setText("S&K: " + terms);
+                                    } else {
+                                        binding.tvVoucherTerms.setVisibility(View.GONE);
+                                    }
+                                } else {
+                                    binding.tvVoucherTerms.setVisibility(View.GONE);
+                                }
+                                
                                 Toast.makeText(CheckoutActivity.this, "Voucher berhasil digunakan!", Toast.LENGTH_SHORT)
                                         .show();
                             } else {
                                 binding.layoutDiscount.setVisibility(View.GONE);
+                                binding.tvVoucherTerms.setVisibility(View.GONE);
                                 if (appliedVoucherCode != null && !appliedVoucherCode.isEmpty()) {
                                     Toast.makeText(CheckoutActivity.this,
                                             "Voucher tidak valid atau syarat tidak terpenuhi", Toast.LENGTH_SHORT)
@@ -466,6 +540,20 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
         String phone = addr.containsKey("phone") ? addr.get("phone").toString() : "";
         String full = addr.containsKey("full_address") ? addr.get("full_address").toString() : "";
 
+        // Extract lat/lng from the selected address
+        selectedAddressLat = null;
+        selectedAddressLng = null;
+        if (addr.containsKey("latitude") && addr.get("latitude") != null) {
+            try {
+                selectedAddressLat = ((Number) addr.get("latitude")).doubleValue();
+            } catch (Exception ignored) {}
+        }
+        if (addr.containsKey("longitude") && addr.get("longitude") != null) {
+            try {
+                selectedAddressLng = ((Number) addr.get("longitude")).doubleValue();
+            } catch (Exception ignored) {}
+        }
+
         binding.tvRecipientName.setText(name);
         binding.tvPhoneNumber.setText(phone);
         binding.tvFullAddress.setText(full);
@@ -626,6 +714,14 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
         body.put("user_address_id", selectedAddressId);
         body.put("payment_method_id", paymentMethodId);
         body.put("delivery_type", deliveryType);
+        // Send buyer coordinates for shipping calculation
+        // Priority: selected address coordinates > device GPS
+        Double cBuyerLat = (selectedAddressLat != null) ? selectedAddressLat : deviceLat;
+        Double cBuyerLng = (selectedAddressLng != null) ? selectedAddressLng : deviceLng;
+        if (cBuyerLat != null && cBuyerLng != null) {
+            body.put("buyer_latitude", cBuyerLat);
+            body.put("buyer_longitude", cBuyerLng);
+        }
         if (appliedVoucherCode != null && !appliedVoucherCode.isEmpty()) {
             body.put("voucher_code", appliedVoucherCode);
         }

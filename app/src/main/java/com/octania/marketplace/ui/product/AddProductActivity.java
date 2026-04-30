@@ -3,6 +3,7 @@ package com.octania.marketplace.ui.product;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -110,7 +111,7 @@ public class AddProductActivity extends AppCompatActivity {
         }
         binding.toolbar.setNavigationOnClickListener(v -> onBackPressed());
 
-        imageAdapter = new ImageAdapter(selectedImages);
+        imageAdapter = new ImageAdapter(this, selectedImages);
         binding.rvImages.setAdapter(imageAdapter);
 
         // Fetch categories dynamically
@@ -286,11 +287,6 @@ public class AddProductActivity extends AppCompatActivity {
             return;
         }
 
-        if (currentLat == null || currentLng == null) {
-            Toast.makeText(this, "Menunggu lokasi... pastikan GPS aktif", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
         binding.btnSubmit.setEnabled(false);
         binding.btnSubmit.setText("Mengunggah...");
 
@@ -314,8 +310,11 @@ public class AddProductActivity extends AppCompatActivity {
             RequestBody conditionBody = RequestBody.create(MediaType.parse("text/plain"), condition);
             RequestBody weightBody = RequestBody.create(MediaType.parse("text/plain"), weight);
             RequestBody locationBody = RequestBody.create(MediaType.parse("text/plain"), location);
-            RequestBody latBody = RequestBody.create(MediaType.parse("text/plain"), String.valueOf(currentLat));
-            RequestBody lngBody = RequestBody.create(MediaType.parse("text/plain"), String.valueOf(currentLng));
+            // Jika lokasi GPS tidak tersedia, kirim string kosong agar backend tetap menerima request.
+            String latString = currentLat != null ? String.valueOf(currentLat) : "";
+            String lngString = currentLng != null ? String.valueOf(currentLng) : "";
+            RequestBody latBody = RequestBody.create(MediaType.parse("text/plain"), latString);
+            RequestBody lngBody = RequestBody.create(MediaType.parse("text/plain"), lngString);
 
             apiService.addProduct("Bearer " + sessionManager.getToken(),
                     nameBody, descBody, priceBody, discountBody, stockBody, categoryIdBody, conditionBody, weightBody,
@@ -327,9 +326,13 @@ public class AddProductActivity extends AppCompatActivity {
                             binding.btnSubmit.setText("Simpan & Jual");
 
                             if (response.isSuccessful()) {
-                                Toast.makeText(AddProductActivity.this, "Berhasil diunggah!", Toast.LENGTH_SHORT)
-                                        .show();
-                                finish();
+                                Toast.makeText(AddProductActivity.this, "Berhasil diunggah!", Toast.LENGTH_SHORT).show();
+                                Intent intent = new Intent(AddProductActivity.this,
+                                        com.octania.marketplace.ui.home.HomeActivity.class);
+                                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                                intent.putExtra("refresh_from_add_product", true);
+                                startActivity(intent);
+                                finishAffinity();
                             } else {
                                 Toast.makeText(AddProductActivity.this, "Gagal mengunggah kode: " + response.code(),
                                         Toast.LENGTH_SHORT).show();
@@ -389,8 +392,10 @@ public class AddProductActivity extends AppCompatActivity {
 
     private static class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ViewHolder> {
         private final List<Uri> images;
+        private final Context context;
 
-        public ImageAdapter(List<Uri> images) {
+        public ImageAdapter(Context context, List<Uri> images) {
+            this.context = context;
             this.images = images;
         }
 
@@ -403,7 +408,43 @@ public class AddProductActivity extends AppCompatActivity {
 
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            holder.imageView.setImageURI(images.get(position));
+            Uri imageUri = images.get(position);
+            holder.imageView.setImageURI(imageUri);
+            
+            // Delete button click
+            holder.btnDelete.setOnClickListener(v -> {
+                new androidx.appcompat.app.AlertDialog.Builder(context)
+                    .setTitle("Hapus Gambar")
+                    .setMessage("Apakah Anda yakin ingin menghapus gambar ini?")
+                    .setPositiveButton("Hapus", (dialog, which) -> {
+                        images.remove(position);
+                        notifyDataSetChanged();
+                    })
+                    .setNegativeButton("Batal", null)
+                    .show();
+            });
+            
+            // Image preview click
+            holder.imageView.setOnClickListener(v -> {
+                android.app.Dialog dialog = new android.app.Dialog(context, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
+                android.view.View previewView = LayoutInflater.from(context).inflate(R.layout.dialog_image_preview, null);
+                dialog.setContentView(previewView);
+
+                ImageView ivPreview = previewView.findViewById(R.id.ivPreview);
+                android.widget.Button btnClose = previewView.findViewById(R.id.btnClose);
+                android.widget.Button btnDelete = previewView.findViewById(R.id.btnDeleteImage);
+
+                ivPreview.setImageURI(imageUri);
+
+                btnClose.setOnClickListener(dv -> dialog.dismiss());
+                btnDelete.setOnClickListener(dv -> {
+                    images.remove(position);
+                    notifyDataSetChanged();
+                    dialog.dismiss();
+                });
+
+                dialog.show();
+            });
         }
 
         @Override
@@ -413,10 +454,12 @@ public class AddProductActivity extends AppCompatActivity {
 
         static class ViewHolder extends RecyclerView.ViewHolder {
             ImageView imageView;
+            ImageView btnDelete;
 
             public ViewHolder(@NonNull View itemView) {
                 super(itemView);
                 imageView = itemView.findViewById(R.id.ivThumb);
+                btnDelete = itemView.findViewById(R.id.btnDelete);
             }
         }
     }

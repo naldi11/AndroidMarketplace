@@ -7,5 +7,7 @@
 			"path": "../../../../Applications/MAMP/htdocs/WebsiteMarketplace"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"java.configuration.updateBuildConfiguration": "interactive"
+	}
 }

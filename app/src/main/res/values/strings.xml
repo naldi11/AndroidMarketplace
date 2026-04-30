@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">MarketPlaceMahasiswa</string>
+    <string name="app_name">MarketMahasiswa</string>
     <string name="login_first">Harap login terlebih dahulu.</string>
     <string name="product_not_found">Produk tidak ditemukan</string>
     <string name="add_to_cart_success">Berhasil ditambahkan ke Keranjang</string>

@@ -134,18 +134,14 @@ public class SellerOrdersActivity extends AppCompatActivity {
         binding.bottomNav.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
             if (id == R.id.nav_home) {
-                startActivity(new Intent(this, com.octania.marketplace.ui.home.HomeActivity.class));
+                startActivity(new Intent(this, com.octania.marketplace.ui.seller.SellerDashboardActivity.class));
+                finish();
+                return true;
+            } else if (id == R.id.nav_add) {
+                startActivity(new Intent(this, com.octania.marketplace.ui.product.MyProductsActivity.class));
                 finish();
                 return true;
             } else if (id == R.id.nav_orders) {
-                return true;
-            } else if (id == R.id.nav_add) {
-                startActivity(new Intent(this, com.octania.marketplace.ui.product.AddProductActivity.class));
-                finish();
-                return true;
-            } else if (id == R.id.nav_wishlist) {
-                startActivity(new Intent(this, com.octania.marketplace.ui.profile.WishlistActivity.class));
-                finish();
                 return true;
             } else if (id == R.id.nav_profile) {
                 startActivity(new Intent(this, com.octania.marketplace.ui.profile.ProfileActivity.class));
@@ -284,7 +280,7 @@ public class SellerOrdersActivity extends AppCompatActivity {
                     filtered.add(order);
                     break;
                 case 1: // Belum Bayar
-                    if (status.equals("pending") || status.equals("waiting_verification"))
+                    if (status.equals("waiting_payment"))
                         filtered.add(order);
                     break;
                 case 2: // Dikemas
@@ -573,6 +569,8 @@ public class SellerOrdersActivity extends AppCompatActivity {
                 case "paid_verified":
                 case "packed":
                     return getResources().getColor(R.color.primary_orange);
+                case "pending":
+                    return getResources().getColor(R.color.grey_icon);
                 case "shipped":
                     return android.graphics.Color.parseColor("#2196F3");
                 case "completed":

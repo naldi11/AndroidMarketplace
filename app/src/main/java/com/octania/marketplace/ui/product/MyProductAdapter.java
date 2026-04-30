@@ -4,14 +4,14 @@ import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageButton;
+import com.google.android.material.button.MaterialButton;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
-import com.google.android.material.imageview.ShapeableImageView;
+import android.widget.ImageView;
 import com.octania.marketplace.R;
 import com.octania.marketplace.data.model.Product;
 
@@ -68,11 +68,11 @@ public class MyProductAdapter extends RecyclerView.Adapter<MyProductAdapter.View
     }
 
     class ViewHolder extends RecyclerView.ViewHolder {
-        final ShapeableImageView ivThumb;
+        final ImageView ivThumb;
         final TextView tvName, tvPrice, tvStock, tvCategory;
         final TextView tvOriginalPrice, tvDiscountBadge;
         final View layoutDiscount;
-        final ImageButton btnEdit, btnDelete;
+        final MaterialButton btnEdit, btnDelete;
 
         ViewHolder(View itemView) {
             super(itemView);

@@ -224,7 +224,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="16dp"
-                        android:hint="Harga Diskon (Opsional)"
+                        android:hint="Jumlah Diskon (Opsional)"
                         app:prefixText="Rp "
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
                         <com.google.android.material.textfield.TextInputEditText

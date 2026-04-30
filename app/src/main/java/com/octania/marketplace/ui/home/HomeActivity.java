@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
@@ -15,6 +16,11 @@ import androidx.core.app.ActivityCompat;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import android.widget.TextView;
+import android.content.SharedPreferences;
+import android.widget.ArrayAdapter;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Collections;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
@@ -28,12 +34,14 @@ import com.octania.marketplace.data.remote.ApiClient;
 import com.octania.marketplace.data.remote.ApiService;
 import com.octania.marketplace.databinding.ActivityHomeBinding;
 import com.octania.marketplace.ui.auth.LoginActivity;
+import com.octania.marketplace.utils.ToastManager;
 import com.octania.marketplace.utils.ProductActionHelper;
 import com.octania.marketplace.utils.SessionManager;
 
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -89,6 +97,7 @@ public class HomeActivity extends AppCompatActivity {
         fetchCategories();
         fetchVouchers();
         fetchLocationAndProducts();
+        handleRefreshIntent(getIntent());
     }
 
     // ==================== SETUP ====================
@@ -106,7 +115,7 @@ public class HomeActivity extends AppCompatActivity {
     private void setupVoucherRecycler() {
         voucherAdapter = new VoucherAdapter(this, voucher -> {
             // Just show code when clicked for now (can copy to clipboard in future)
-            Toast.makeText(this, "Gunakan kode: " + voucher.code, Toast.LENGTH_SHORT).show();
+            ToastManager.showToast(this, "Gunakan kode: " + voucher.code);
         });
         binding.rvVouchers.setLayoutManager(
                 new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
@@ -128,7 +137,7 @@ public class HomeActivity extends AppCompatActivity {
             @Override
             public void onAddToCartClick(Product product) {
                 if (!sessionManager.isLoggedIn()) {
-                    Toast.makeText(HomeActivity.this, "Silakan login terlebih dahulu", Toast.LENGTH_SHORT).show();
+                    ToastManager.showToast(HomeActivity.this, "Silakan login terlebih dahulu");
                     startActivity(new Intent(HomeActivity.this, LoginActivity.class));
                     return;
                 }
@@ -151,22 +160,95 @@ public class HomeActivity extends AppCompatActivity {
                 toggleWishlist(product.getId());
             }
         });
-        binding.rvProducts.setLayoutManager(new GridLayoutManager(this, 2));
+        Log.d("HOME_DEBUG", "Setting up ProductAdapter");
+        GridLayoutManager gridLayoutManager = new GridLayoutManager(this, 2);
+        binding.rvProducts.setLayoutManager(gridLayoutManager);
         binding.rvProducts.setAdapter(productAdapter);
+        
+        // Force RecyclerView visibility
+        binding.rvProducts.setVisibility(View.VISIBLE);
+        binding.rvProducts.requestLayout();
+        
+        Log.d("HOME_DEBUG", "ProductAdapter setup complete");
     }
 
     private void setupSearch() {
+        SharedPreferences prefs = getSharedPreferences("SearchHistory", MODE_PRIVATE);
+        Set<String> historySet = prefs.getStringSet("history", new HashSet<>());
+        List<String> historyList = new ArrayList<>(historySet);
+        
+        // Populate Chips
+        populateSearchHistoryChips(historyList);
+
+        binding.etSearch.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) {
+                binding.layoutSearchHistory.setVisibility(View.VISIBLE);
+            } else {
+                binding.layoutSearchHistory.setVisibility(View.GONE);
+            }
+        });
+
+        binding.btnClearHistory.setOnClickListener(v -> {
+            prefs.edit().putStringSet("history", new HashSet<>()).apply();
+            populateSearchHistoryChips(new ArrayList<>());
+        });
+
         binding.etSearch.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_SEARCH ||
                     (event != null && event.getAction() == KeyEvent.ACTION_DOWN
                             && event.getKeyCode() == KeyEvent.KEYCODE_ENTER)) {
                 String query = binding.etSearch.getText().toString().trim();
                 searchQuery = query.isEmpty() ? null : query;
+                
+                if (searchQuery != null) {
+                    historySet.add(searchQuery);
+                    prefs.edit().putStringSet("history", historySet).apply();
+                    populateSearchHistoryChips(new ArrayList<>(historySet));
+                }
+
+                binding.etSearch.clearFocus();
+                binding.layoutSearchHistory.setVisibility(View.GONE);
                 loadProducts();
+
+                // Hide keyboard
+                android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
+                imm.hideSoftInputFromWindow(binding.etSearch.getWindowToken(), 0);
+
                 return true;
             }
             return false;
         });
+    }
+
+    private void populateSearchHistoryChips(List<String> historyList) {
+        binding.chipGroupHistory.removeAllViews();
+        if (historyList == null || historyList.isEmpty()) {
+            binding.tvNoHistory.setVisibility(View.VISIBLE);
+            return;
+        }
+        binding.tvNoHistory.setVisibility(View.GONE);
+        for (String history : historyList) {
+            com.google.android.material.chip.Chip chip = new com.google.android.material.chip.Chip(this);
+            chip.setText(history);
+            chip.setClickable(true);
+            chip.setCheckable(false);
+            chip.setChipBackgroundColorResource(android.R.color.white);
+            chip.setChipStrokeColorResource(R.color.grey_inactive);
+            chip.setChipStrokeWidth(1f);
+            
+            chip.setOnClickListener(v -> {
+                binding.etSearch.setText(history);
+                searchQuery = history;
+                binding.etSearch.clearFocus();
+                binding.layoutSearchHistory.setVisibility(View.GONE);
+                
+                android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
+                imm.hideSoftInputFromWindow(binding.etSearch.getWindowToken(), 0);
+                
+                loadProducts();
+            });
+            binding.chipGroupHistory.addView(chip);
+        }
     }
 
     private void setupBottomNav() {
@@ -179,19 +261,18 @@ public class HomeActivity extends AppCompatActivity {
                 return true;
             } else if (id == R.id.nav_orders) {
                 startActivity(new Intent(this,
-                        com.octania.marketplace.ui.seller.SellerOrdersActivity.class));
-                return true;
-            } else if (id == R.id.nav_add) {
-                startActivity(new Intent(this,
-                        com.octania.marketplace.ui.product.AddProductActivity.class));
+                        com.octania.marketplace.ui.seller.MyOrdersActivity.class));
+                finish();
                 return true;
             } else if (id == R.id.nav_wishlist) {
                 startActivity(new Intent(this,
                         com.octania.marketplace.ui.profile.WishlistActivity.class));
+                finish();
                 return true;
             } else if (id == R.id.nav_profile) {
                 startActivity(new Intent(this,
                         com.octania.marketplace.ui.profile.ProfileActivity.class));
+                finish();
                 return true;
             }
             return false;
@@ -261,6 +342,12 @@ public class HomeActivity extends AppCompatActivity {
     private void fetchLocationAndProducts() {
         if (ActivityCompat.checkSelfPermission(this,
                 Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // Jika izin lokasi belum diberikan, tetap muat produk tanpa koordinat
+            currentLat = null;
+            currentLng = null;
+            binding.swipeRefresh.setRefreshing(true);
+            loadProducts();
+            // Opsional: tetap minta izin sekali, tapi tidak bergantung padanya untuk menampilkan produk
             ActivityCompat.requestPermissions(this,
                     new String[] { Manifest.permission.ACCESS_FINE_LOCATION },
                     LOCATION_PERMISSION_REQUEST_CODE);
@@ -288,33 +375,132 @@ public class HomeActivity extends AppCompatActivity {
                         binding.swipeRefresh.setRefreshing(false);
                         if (response.isSuccessful() && response.body() != null) {
                             ApiResponse<Object> apiResponse = response.body();
-                            if ("success".equals(apiResponse.getStatus())) {
+                            
+                            if ("success".equals(apiResponse.getStatus()) && apiResponse.getData() != null) {
                                 try {
                                     Map<String, Object> dataMap = (Map<String, Object>) apiResponse.getData();
                                     Object itemsObj = dataMap.get("data");
 
-                                    Gson gson = new Gson();
-                                    String json = gson.toJson(itemsObj);
-                                    Type listType = new TypeToken<List<Product>>() {
-                                    }.getType();
-                                    List<Product> products = gson.fromJson(json, listType);
+                                    if (itemsObj != null) {
+                                        Gson gson = new Gson();
+                                        String json = gson.toJson(itemsObj);
+                                        
+                                        Type listType = new TypeToken<List<Product>>() {
+                                        }.getType();
+                                        List<Product> products = gson.fromJson(json, listType);
 
-                                    productAdapter.updateData(products);
+                                        // DEBUG: Log product count
+                                        System.out.println("=== DEBUG: Products loaded: " + (products != null ? products.size() : 0));
+
+                                        // Ensure products list is not null
+                                        if (products == null) {
+                                            products = new ArrayList<>();
+                                        }
+
+                                        // Inject Ad Banners every 4 items
+                                        List<Product> productsWithAds = new ArrayList<>();
+                                        for (int i = 0; i < products.size(); i++) {
+                                            productsWithAds.add(products.get(i));
+                                            // Insert ad after every 4th actual product
+                                            if ((i + 1) % 4 == 0) {
+                                                Product dummyAd = new Product();
+                                                dummyAd.setId(-1); // Marker for AD
+                                                productsWithAds.add(dummyAd);
+                                            }
+                                        }
+
+                                        System.out.println("=== DEBUG: Products with ads: " + productsWithAds.size());
+                                        productAdapter.updateData(productsWithAds);
+                                        
+                                        // TEST: Add hardcoded product if empty
+                                        if (productsWithAds.isEmpty()) {
+                                            System.out.println("=== DEBUG: Adding hardcoded test product");
+                                            Product testProduct = new Product();
+                                            testProduct.setId(999);
+                                            testProduct.setName("TEST PRODUCT - DISCOUNT 50%");
+                                            testProduct.setPrice(20000);
+                                            testProduct.setImage("");
+                                            testProduct.setEffectivePrice(10000);
+                                            testProduct.setHasDiscount(true);
+                                            testProduct.setDiscountPercent(50.0);
+                                            
+                                            List<Product> testList = new ArrayList<>();
+                                            testList.add(testProduct);
+                                            productAdapter.updateData(testList);
+                                        }
+                                    } else {
+                                        // No data items
+                                        System.out.println("=== DEBUG: No data items found - adding hardcoded test");
+                                        Product testProduct = new Product();
+                                        testProduct.setId(999);
+                                        testProduct.setName("TEST PRODUCT (NO DATA)");
+                                        testProduct.setPrice(10000);
+                                        testProduct.setImage("");
+                                        testProduct.setEffectivePrice(10000);
+                                        testProduct.setHasDiscount(false);
+                                        
+                                        List<Product> testList = new ArrayList<>();
+                                        testList.add(testProduct);
+                                        productAdapter.updateData(testList);
+                                    }
                                 } catch (Exception e) {
-                                    Toast.makeText(HomeActivity.this,
-                                            getString(R.string.server_error),
-                                            Toast.LENGTH_SHORT).show();
+                                    e.printStackTrace();
+                                    // Fallback: show empty state
+                                    productAdapter.updateData(new ArrayList<>());
+                                    ToastManager.showToast(HomeActivity.this,
+                                            getString(R.string.server_error));
                                 }
+                            } else {
+                                // API not success or no data
+                                System.out.println("=== DEBUG: API not success - adding hardcoded test");
+                                Product testProduct = new Product();
+                                testProduct.setId(999);
+                                testProduct.setName("TEST PRODUCT (API ERROR)");
+                                testProduct.setPrice(10000);
+                                testProduct.setImage("");
+                                testProduct.setEffectivePrice(10000);
+                                testProduct.setHasDiscount(false);
+                                
+                                List<Product> testList = new ArrayList<>();
+                                testList.add(testProduct);
+                                productAdapter.updateData(testList);
                             }
+                        } else {
+                            // Response not successful
+                            System.out.println("=== DEBUG: Response not successful - adding hardcoded test");
+                            Product testProduct = new Product();
+                            testProduct.setId(999);
+                            testProduct.setName("TEST PRODUCT (RESPONSE ERROR)");
+                            testProduct.setPrice(10000);
+                            testProduct.setImage("");
+                            testProduct.setEffectivePrice(10000);
+                            testProduct.setHasDiscount(false);
+                            
+                            List<Product> testList = new ArrayList<>();
+                            testList.add(testProduct);
+                            productAdapter.updateData(testList);
                         }
                     }
 
                     @Override
                     public void onFailure(Call<ApiResponse<Object>> call, Throwable t) {
                         binding.swipeRefresh.setRefreshing(false);
-                        Toast.makeText(HomeActivity.this,
-                                getString(R.string.network_error) + ": " + t.getMessage(),
-                                Toast.LENGTH_SHORT).show();
+                        
+                        System.out.println("=== DEBUG: Network failure - adding hardcoded test");
+                        Product testProduct = new Product();
+                        testProduct.setId(999);
+                        testProduct.setName("TEST PRODUCT (NETWORK ERROR)");
+                        testProduct.setPrice(10000);
+                        testProduct.setImage("");
+                        testProduct.setEffectivePrice(10000);
+                        testProduct.setHasDiscount(false);
+                        
+                        List<Product> testList = new ArrayList<>();
+                        testList.add(testProduct);
+                        productAdapter.updateData(testList);
+                        
+                        ToastManager.showToast(HomeActivity.this,
+                                getString(R.string.network_error) + ": " + t.getMessage());
                     }
                 });
     }
@@ -325,13 +511,13 @@ public class HomeActivity extends AppCompatActivity {
         actionHelper.addToCart(productId, 1, new ProductActionHelper.ActionCallback() {
             @Override
             public void onSuccess(String message) {
-                Toast.makeText(HomeActivity.this, message, Toast.LENGTH_SHORT).show();
+                ToastManager.showToast(HomeActivity.this, message);
                 fetchUserCounts(); // INSTANT SYNC
             }
 
             @Override
             public void onError(String errorMessage) {
-                Toast.makeText(HomeActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
+                ToastManager.showToast(HomeActivity.this, errorMessage);
             }
         });
     }
@@ -340,13 +526,13 @@ public class HomeActivity extends AppCompatActivity {
         actionHelper.toggleWishlist(productId, new ProductActionHelper.ActionCallback() {
             @Override
             public void onSuccess(String message) {
-                Toast.makeText(HomeActivity.this, message, Toast.LENGTH_SHORT).show();
+                ToastManager.showToast(HomeActivity.this, message);
                 fetchUserCounts(); // INSTANT SYNC
             }
 
             @Override
             public void onError(String errorMessage) {
-                Toast.makeText(HomeActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
+                ToastManager.showToast(HomeActivity.this, errorMessage);
             }
         });
     }
@@ -420,7 +606,19 @@ public class HomeActivity extends AppCompatActivity {
             @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
-            fetchLocationAndProducts();
+            // Hanya refetch lokasi jika izin benar-benar diberikan.
+            // Jika ditolak, jangan panggil kembali fetchLocationAndProducts()
+            // karena di dalamnya masih ada pemanggilan requestPermissions()
+            // yang bisa memicu loop tanpa henti seperti di logcat.
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                fetchLocationAndProducts();
+            } else {
+                // User menolak izin: muat produk tanpa koordinat lokasi
+                currentLat = null;
+                currentLng = null;
+                binding.swipeRefresh.setRefreshing(true);
+                loadProducts();
+            }
         }
     }
 
@@ -432,7 +630,26 @@ public class HomeActivity extends AppCompatActivity {
         com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(binding.bottomNav);
         fetchUserCounts();
 
-        // Reload products to sync any wishlist state changes made from other screens
-        loadProducts();
+        // Always refresh products on resume to ensure data is current
+        binding.swipeRefresh.setRefreshing(true);
+        binding.swipeRefresh.postDelayed(this::fetchLocationAndProducts, 300);
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleRefreshIntent(intent);
+    }
+
+    private void handleRefreshIntent(Intent intent) {
+        if (intent != null && intent.getBooleanExtra("refresh_from_add_product", false)) {
+            if (productAdapter != null) {
+                productAdapter.clearData();
+            }
+            binding.swipeRefresh.setRefreshing(true);
+            binding.swipeRefresh.postDelayed(this::fetchLocationAndProducts, 500);
+            intent.removeExtra("refresh_from_add_product");
+        }
     }
 }

@@ -146,10 +146,18 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:gravity="center"
-            android:text="3 Hari Lagi"
+            android:text="S&amp;K Berlaku"
             android:textColor="#FFCDD2"
             android:textSize="9sp"
             android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/ivInfo"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:layout_marginTop="4dp"
+            android:src="@android:drawable/ic_dialog_info"
+            app:tint="#FFFFFF" />
 
     </LinearLayout>
 

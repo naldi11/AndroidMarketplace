@@ -10,6 +10,7 @@ public class SessionManager {
     private static final String KEY_TOKEN = "token";
     private static final String KEY_IS_LOGGED_IN = "isLoggedIn";
     private static final String KEY_USER_ID = "userId";
+    private static final String KEY_ACTIVE_ROLE = "activeRole";
 
     public static final String KEY_NAME = "userName";
     public static final String KEY_EMAIL = "userEmail";
@@ -25,10 +26,11 @@ public class SessionManager {
         editor = pref.edit();
     }
 
-    public void createLoginSession(String token, int userId) {
+    public void createLoginSession(String token, int userId, String role) {
         editor.putBoolean(KEY_IS_LOGGED_IN, true);
         editor.putString(KEY_TOKEN, token);
         editor.putInt(KEY_USER_ID, userId);
+        editor.putString(KEY_ACTIVE_ROLE, role);
         editor.commit();
     }
 
@@ -42,6 +44,10 @@ public class SessionManager {
 
     public int getUserId() {
         return pref.getInt(KEY_USER_ID, 0);
+    }
+
+    public String getActiveRole() {
+        return pref.getString(KEY_ACTIVE_ROLE, "buyer"); // default buyer
     }
 
     public void logoutUser() {

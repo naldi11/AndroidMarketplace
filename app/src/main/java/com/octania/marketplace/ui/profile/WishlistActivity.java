@@ -72,11 +72,7 @@ public class WishlistActivity extends AppCompatActivity {
                 finish();
                 return true;
             } else if (id == R.id.nav_orders) {
-                startActivity(new Intent(this, com.octania.marketplace.ui.seller.SellerOrdersActivity.class));
-                finish();
-                return true;
-            } else if (id == R.id.nav_add) {
-                startActivity(new Intent(this, com.octania.marketplace.ui.product.AddProductActivity.class));
+                startActivity(new Intent(this, com.octania.marketplace.ui.seller.MyOrdersActivity.class));
                 finish();
                 return true;
             } else if (id == R.id.nav_wishlist) {

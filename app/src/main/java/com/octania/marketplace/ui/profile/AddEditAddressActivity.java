@@ -30,6 +30,8 @@ public class AddEditAddressActivity extends AppCompatActivity {
     private SessionManager sessionManager;
 
     private int addressIdToEdit = -1;
+    private Double pickedLat = null;
+    private Double pickedLng = null;
 
     private final ActivityResultLauncher<Intent> mapLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -38,6 +40,10 @@ public class AddEditAddressActivity extends AppCompatActivity {
                     String addr = result.getData().getStringExtra("picked_address");
                     if (addr != null && !addr.isEmpty()) {
                         binding.etFullAddress.setText(addr);
+                    }
+                    if (result.getData().hasExtra("lat") && result.getData().hasExtra("lng")) {
+                        pickedLat = result.getData().getDoubleExtra("lat", 0);
+                        pickedLng = result.getData().getDoubleExtra("lng", 0);
                     }
                 }
             });
@@ -65,6 +71,14 @@ public class AddEditAddressActivity extends AppCompatActivity {
                 binding.etRecipientName.setText(String.valueOf(addr.get("recipient_name")));
                 binding.etPhone.setText(String.valueOf(addr.get("phone")));
                 binding.etFullAddress.setText(String.valueOf(addr.get("full_address")));
+
+                // Preserve existing lat/lng
+                if (addr.containsKey("latitude") && addr.get("latitude") != null) {
+                    pickedLat = ((Number) addr.get("latitude")).doubleValue();
+                }
+                if (addr.containsKey("longitude") && addr.get("longitude") != null) {
+                    pickedLng = ((Number) addr.get("longitude")).doubleValue();
+                }
 
             } catch (Exception e) {
                 e.printStackTrace();
@@ -120,10 +134,10 @@ public class AddEditAddressActivity extends AppCompatActivity {
 
         if (addressIdToEdit == -1) {
             // Create
-            apiService.addAddress(token, name, phone, address, null, null, false).enqueue(callback);
+            apiService.addAddress(token, name, phone, address, pickedLat, pickedLng, false).enqueue(callback);
         } else {
             // Update
-            apiService.updateAddress(token, addressIdToEdit, name, phone, address).enqueue(callback);
+            apiService.updateAddress(token, addressIdToEdit, name, phone, address, pickedLat, pickedLng).enqueue(callback);
         }
     }
 }

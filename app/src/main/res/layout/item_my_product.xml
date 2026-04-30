@@ -3,149 +3,178 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginHorizontal="12dp"
-    android:layout_marginVertical="5dp"
-    app:cardCornerRadius="12dp"
+    android:layout_margin="6dp"
+    app:cardCornerRadius="8dp"
     app:cardElevation="2dp"
+    app:cardBackgroundColor="@color/white"
     app:strokeWidth="0dp">
 
-    <LinearLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="10dp"
-        android:background="@color/white"
-        android:gravity="center_vertical">
+        android:layout_height="wrap_content">
 
-        <!-- Thumbnail -->
-        <com.google.android.material.imageview.ShapeableImageView
+        <!-- Product Image -->
+        <ImageView
             android:id="@+id/ivProductThumb"
-            android:layout_width="72dp"
-            android:layout_height="72dp"
-            android:scaleType="centerCrop"
-            android:background="@color/grey_bg"
-            app:shapeAppearanceOverlay="@style/RoundedImage" />
-
-        <!-- Info -->
-        <LinearLayout
             android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_marginStart="12dp">
+            android:layout_height="0dp"
+            android:scaleType="centerCrop"
+            android:background="#F5F5F5"
+            app:layout_constraintDimensionRatio="1:1"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
-            <TextView
-                android:id="@+id/tvProductName"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Nama Produk"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:textColor="@color/text_dark"
-                android:maxLines="1"
-                android:ellipsize="end" />
-
-            <TextView
-                android:id="@+id/tvProductPrice"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="Rp 0"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:textColor="@color/primary_orange" />
-
-            <LinearLayout
-                android:id="@+id/layoutDiscount"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:visibility="gone">
-
-                <TextView
-                    android:id="@+id/tvOriginalPrice"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Rp 0"
-                    android:textSize="11sp"
-                    android:textColor="@color/grey_inactive" />
-
-                <TextView
-                    android:id="@+id/tvDiscountBadge"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
-                    android:background="@drawable/bg_discount_badge"
-                    android:backgroundTint="#FF5722"
-                    android:paddingHorizontal="6dp"
-                    android:paddingVertical="1dp"
-                    android:text="-10%"
-                    android:textColor="@color/white"
-                    android:textSize="9sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
-
-                <TextView
-                    android:id="@+id/tvStockBadge"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/bg_category_icon"
-                    android:paddingHorizontal="8dp"
-                    android:paddingVertical="2dp"
-                    android:text="Stok: 0"
-                    android:textSize="10sp"
-                    android:textColor="@color/grey_icon" />
-
-                <TextView
-                    android:id="@+id/tvCategoryBadge"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
-                    android:background="@drawable/bg_category_icon"
-                    android:paddingHorizontal="8dp"
-                    android:paddingVertical="2dp"
-                    android:text="Kategori"
-                    android:textSize="10sp"
-                    android:textColor="@color/grey_icon" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <!-- Action Buttons -->
-        <LinearLayout
+        <!-- Stock Badge overlay on image -->
+        <TextView
+            android:id="@+id/tvStockBadge"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:layout_marginStart="8dp">
+            android:layout_marginStart="6dp"
+            android:layout_marginBottom="6dp"
+            android:background="@drawable/bg_category_icon"
+            android:backgroundTint="#B3000000"
+            android:paddingHorizontal="6dp"
+            android:paddingVertical="2dp"
+            android:text="Stok: 0"
+            android:textColor="@color/white"
+            android:textSize="10sp"
+            app:layout_constraintBottom_toBottomOf="@id/ivProductThumb"
+            app:layout_constraintStart_toStartOf="@id/ivProductThumb" />
 
-            <ImageButton
-                android:id="@+id/btnEdit"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:padding="6dp"
-                android:background="?selectableItemBackgroundBorderless"
-                android:src="@android:drawable/ic_menu_edit"
-                app:tint="@color/primary_orange"
-                android:contentDescription="Edit" />
+        <!-- Product Title -->
+        <TextView
+            android:id="@+id/tvProductName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="8dp"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:text="Nama Produk"
+            android:textColor="#333333"
+            android:textSize="13sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/ivProductThumb" />
 
-            <ImageButton
-                android:id="@+id/btnDelete"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:layout_marginTop="4dp"
-                android:padding="6dp"
-                android:background="?selectableItemBackgroundBorderless"
-                android:src="@android:drawable/ic_menu_delete"
-                app:tint="@color/wishlist_red"
-                android:contentDescription="Delete" />
+        <!-- Category -->
+        <TextView
+            android:id="@+id/tvCategoryBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="4dp"
+            android:text="Kategori"
+            android:textColor="#888888"
+            android:textSize="10sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tvProductName" />
+
+        <LinearLayout
+            android:id="@+id/layoutDiscount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="4dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:visibility="visible"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tvCategoryBadge">
+
+            <TextView
+                android:id="@+id/tvDiscountBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="#FCEAED"
+                android:paddingHorizontal="4dp"
+                android:paddingVertical="2dp"
+                android:text="-10%"
+                android:textColor="#EE4D2D"
+                android:textSize="9sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvOriginalPrice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:text="Rp 0"
+                android:textColor="#BBBBBB"
+                android:textSize="11sp" />
         </LinearLayout>
-    </LinearLayout>
+
+        <!-- Current Price -->
+        <TextView
+            android:id="@+id/tvProductPrice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="4dp"
+            android:text="Rp 0"
+            android:textColor="#EE4D2D"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/layoutDiscount" />
+
+        <!-- Spacer for action buttons (creates fixed margin before buttons) -->
+        <View
+            android:id="@+id/spacer"
+            android:layout_width="match_parent"
+            android:layout_height="12dp"
+            app:layout_constraintTop_toBottomOf="@id/tvProductPrice" />
+
+        <!-- Action Buttons Layout -->
+        <LinearLayout
+            android:id="@+id/layoutActions"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:layout_marginBottom="8dp"
+            android:orientation="horizontal"
+            android:weightSum="2"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tvProductPrice"
+            app:layout_constraintVertical_bias="1.0">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnEdit"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="4dp"
+                android:layout_weight="1"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:padding="0dp"
+                android:text="Ubah"
+                android:textColor="#555555"
+                android:textSize="11sp"
+                app:cornerRadius="4dp"
+                app:strokeColor="#DDDDDD" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnDelete"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="4dp"
+                android:layout_weight="1"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:padding="0dp"
+                android:text="Hapus"
+                android:textColor="#EE4D2D"
+                android:textSize="11sp"
+                app:cornerRadius="4dp"
+                app:strokeColor="#EE4D2D" />
+        </LinearLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
 </com.google.android.material.card.MaterialCardView>

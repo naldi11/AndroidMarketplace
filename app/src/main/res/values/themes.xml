@@ -19,6 +19,14 @@
         <item name="bottomNavigationStyle">@style/Widget.App.BottomNavigation</item>
     </style>
 
+    <!-- Splash Screen Theme -->
+    <style name="Theme.Splash" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="android:windowBackground">@drawable/bg_splash_gradient</item>
+        <item name="android:statusBarColor">@color/primary_orange</item>
+        <item name="android:navigationBarColor">@color/primary_orange_dark</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+
     <style name="Widget.App.BottomNavigation" parent="Widget.MaterialComponents.BottomNavigationView.Colored">
         <item name="materialThemeOverlay">@style/ThemeOverlay.App.BottomNavigation</item>
         <item name="itemActiveIndicatorStyle">@style/Widget.App.BottomNavigation.ActiveIndicator</item>

@@ -33,11 +33,84 @@ public class RegisterActivity extends AppCompatActivity {
         sessionManager = new SessionManager(this);
         apiService = ApiClient.getClient().create(ApiService.class);
 
+        // Setup toolbar navigation
+        binding.toolbar.setNavigationOnClickListener(v -> finish());
+
+        // Setup password strength indicator
+        binding.etPassword.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                updatePasswordStrength(s.toString());
+            }
+
+            @Override
+            public void afterTextChanged(android.text.Editable s) {}
+        });
+
         binding.btnRegister.setOnClickListener(v -> attemptRegister());
 
         binding.tvLogin.setOnClickListener(v -> finish());
 
         binding.tvTermsLink.setOnClickListener(v -> showTermsDialog());
+
+        binding.rgRole.setOnCheckedChangeListener((group, checkedId) -> {
+            boolean isSeller = checkedId == com.octania.marketplace.R.id.rbSeller;
+            binding.llSellerFields.setVisibility(isSeller ? View.VISIBLE : View.GONE);
+        });
+    }
+
+    private void updatePasswordStrength(String password) {
+        int strength = calculatePasswordStrength(password);
+        
+        // Reset all indicators
+        binding.indicatorWeak.setBackgroundColor(getResources().getColor(android.R.color.darker_gray));
+        binding.indicatorMedium.setBackgroundColor(getResources().getColor(android.R.color.darker_gray));
+        binding.indicatorStrong.setBackgroundColor(getResources().getColor(android.R.color.darker_gray));
+        
+        String strengthText;
+        int strengthColor;
+        
+        switch (strength) {
+            case 0:
+            case 1:
+                strengthText = "Kekuatan: Lemah";
+                strengthColor = getResources().getColor(android.R.color.holo_red_light);
+                binding.indicatorWeak.setBackgroundColor(strengthColor);
+                break;
+            case 2:
+                strengthText = "Kekuatan: Sedang";
+                strengthColor = getResources().getColor(android.R.color.holo_orange_light);
+                binding.indicatorWeak.setBackgroundColor(strengthColor);
+                binding.indicatorMedium.setBackgroundColor(strengthColor);
+                break;
+            case 3:
+                strengthText = "Kekuatan: Kuat";
+                strengthColor = getResources().getColor(android.R.color.holo_green_light);
+                binding.indicatorWeak.setBackgroundColor(strengthColor);
+                binding.indicatorMedium.setBackgroundColor(strengthColor);
+                binding.indicatorStrong.setBackgroundColor(strengthColor);
+                break;
+            default:
+                strengthText = "Kekuatan password";
+                strengthColor = getResources().getColor(android.R.color.darker_gray);
+        }
+        
+        binding.tvPasswordStrength.setText(strengthText);
+        binding.tvPasswordStrength.setTextColor(strengthColor);
+    }
+
+    private int calculatePasswordStrength(String password) {
+        int strength = 0;
+        
+        if (password.length() >= 8) strength++;
+        if (password.matches(".*[A-Z].*")) strength++;
+        if (password.matches(".*[0-9].*")) strength++;
+        if (password.matches(".*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?].*")) strength++;
+        
+        return Math.min(strength, 3);
     }
 
     private void showTermsDialog() {
@@ -76,9 +149,24 @@ public class RegisterActivity extends AppCompatActivity {
         String password = binding.etPassword.getText().toString().trim();
         String confirmPassword = binding.etPasswordConfirm.getText().toString().trim();
 
+        int selectedRoleId = binding.rgRole.getCheckedRadioButtonId();
+        String role = selectedRoleId == com.octania.marketplace.R.id.rbSeller ? "seller" : "buyer";
+        String shopName = binding.etShopName.getText().toString().trim();
+        String address = binding.etAddress.getText().toString().trim();
+
         if (name.isEmpty() || email.isEmpty() || phone.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
             Toast.makeText(this, "Semua field wajib diisi", Toast.LENGTH_SHORT).show();
             return;
+        }
+
+        if ("seller".equals(role)) {
+            if (shopName.isEmpty() || address.isEmpty()) {
+                Toast.makeText(this, "Nama dan Alamat Toko wajib diisi untuk Penjual!", Toast.LENGTH_SHORT).show();
+                return;
+            }
+        } else {
+            shopName = null;
+            address = null;
         }
 
         if (!binding.cbTerms.isChecked()) {
@@ -93,7 +181,7 @@ public class RegisterActivity extends AppCompatActivity {
 
         setLoading(true);
 
-        apiService.register(name, email, phone, password, confirmPassword).enqueue(new Callback<AuthResponse>() {
+        apiService.register(name, email, phone, password, confirmPassword, role, shopName, address).enqueue(new Callback<AuthResponse>() {
             @Override
             public void onResponse(Call<AuthResponse> call, Response<AuthResponse> response) {
                 setLoading(false);
@@ -102,13 +190,21 @@ public class RegisterActivity extends AppCompatActivity {
                     if ("success".equals(res.getStatus())) {
                         String token = res.getAccessToken();
                         int userId = res.getData().getId();
+                        String responseRole = res.getData().getRole();
+                        if (responseRole == null) {
+                            responseRole = role; // fallback
+                        }
 
-                        sessionManager.createLoginSession(token, userId);
+                        sessionManager.createLoginSession(token, userId, responseRole);
 
                         Toast.makeText(RegisterActivity.this, "Pendaftaran berhasil!", Toast.LENGTH_SHORT).show();
 
-                        // Clear task stack and go home
-                        Intent intent = new Intent(RegisterActivity.this, HomeActivity.class);
+                        Intent intent;
+                        if ("seller".equals(responseRole)) {
+                            intent = new Intent(RegisterActivity.this, com.octania.marketplace.ui.seller.SellerDashboardActivity.class);
+                        } else {
+                            intent = new Intent(RegisterActivity.this, HomeActivity.class);
+                        }
                         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                         startActivity(intent);
                         finish();
@@ -151,6 +247,11 @@ public class RegisterActivity extends AppCompatActivity {
         binding.etName.setEnabled(!isLoading);
         binding.etEmail.setEnabled(!isLoading);
         binding.etPhone.setEnabled(!isLoading);
+        binding.etShopName.setEnabled(!isLoading);
+        binding.etAddress.setEnabled(!isLoading);
+        for(int i = 0; i < binding.rgRole.getChildCount(); i++){
+            binding.rgRole.getChildAt(i).setEnabled(!isLoading);
+        }
         binding.etPassword.setEnabled(!isLoading);
         binding.etPasswordConfirm.setEnabled(!isLoading);
     }

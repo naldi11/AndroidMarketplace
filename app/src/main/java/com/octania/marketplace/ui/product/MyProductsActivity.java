@@ -49,11 +49,43 @@ public class MyProductsActivity extends AppCompatActivity {
 
         binding.swipeRefresh.setColorSchemeResources(R.color.primary_orange);
         binding.swipeRefresh.setOnRefreshListener(this::fetchMyProducts);
+
+        setupBottomNav();
+    }
+
+    private void setupBottomNav() {
+        if (binding.bottomNav == null) return;
+        binding.bottomNav.setSelectedItemId(R.id.nav_add);
+        com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(binding.bottomNav);
+
+        binding.bottomNav.setOnItemSelectedListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.nav_home) {
+                startActivity(new Intent(this, com.octania.marketplace.ui.seller.SellerDashboardActivity.class));
+                finish();
+                return true;
+            } else if (id == R.id.nav_add) {
+                return true;
+            } else if (id == R.id.nav_orders) {
+                startActivity(new Intent(this, com.octania.marketplace.ui.seller.SellerOrdersActivity.class));
+                finish();
+                return true;
+            } else if (id == R.id.nav_profile) {
+                startActivity(new Intent(this, com.octania.marketplace.ui.profile.ProfileActivity.class));
+                finish();
+                return true;
+            }
+            return false;
+        });
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        if (binding.bottomNav != null) {
+            binding.bottomNav.setSelectedItemId(R.id.nav_add);
+            com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(binding.bottomNav);
+        }
         fetchMyProducts();
     }
 
@@ -71,7 +103,7 @@ public class MyProductsActivity extends AppCompatActivity {
                 showDeleteConfirmation(product);
             }
         });
-        binding.rvMyProducts.setLayoutManager(new LinearLayoutManager(this));
+        binding.rvMyProducts.setLayoutManager(new androidx.recyclerview.widget.GridLayoutManager(this, 2));
         binding.rvMyProducts.setAdapter(adapter);
     }
 
