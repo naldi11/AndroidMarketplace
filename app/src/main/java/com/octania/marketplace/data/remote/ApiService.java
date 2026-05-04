@@ -114,16 +114,6 @@ public interface ApiService {
                         @Header("Authorization") String token,
                         @retrofit2.http.Path("id") int cartId);
 
-        // Legacy cart checkout (if still used)
-        @FormUrlEncoded
-        @POST("transactions/cart")
-        Call<ApiResponse<Object>> checkout(
-                        @Header("Authorization") String token,
-                        @Field("user_address_id") int userAddressId,
-                        @Field("payment_method_id") int paymentMethodId,
-                        @Field("voucher_code") String voucherCode,
-                        @Field("cart_ids[]") List<Integer> cartIds);
-
         // ===== New Checkout Flow =====
         @POST("transactions/preview")
         Call<ApiResponse<Object>> previewCheckout(

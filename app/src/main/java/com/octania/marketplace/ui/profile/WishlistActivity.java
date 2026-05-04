@@ -136,7 +136,7 @@ public class WishlistActivity extends AppCompatActivity {
         });
         // Based on user feedback: "Cardnya langsung full 1 saja jangan grid 2 karena
         // jelek"
-        binding.rvWishlist.setLayoutManager(new LinearLayoutManager(this));
+        binding.rvWishlist.setLayoutManager(new androidx.recyclerview.widget.GridLayoutManager(this, 2));
         binding.rvWishlist.setAdapter(adapter);
     }
 

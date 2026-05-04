@@ -12,6 +12,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -22,6 +23,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.badge.BadgeDrawable;
 import com.google.android.material.tabs.TabLayout;
@@ -193,7 +195,7 @@ public class MyOrdersActivity extends AppCompatActivity {
         // Tabs: 0: Semua (no badge), 1: Belum Bayar, 2: Dikemas, 3: Dikirim, 4:
         // Selesai, 5: Dibatalkan
         int[] tabIndices = { 1, 2, 3, 4, 5 };
-        String[] countKeys = { "waiting_payment", "processing", "shipped", "received", "cancelled" };
+        String[] countKeys = { "waiting_payment", "paid_verified", "shipped", "received", "cancelled" };
 
         for (int i = 0; i < tabIndices.length; i++) {
             TabLayout.Tab tab = binding.tabLayout.getTabAt(tabIndices[i]);
@@ -266,8 +268,9 @@ public class MyOrdersActivity extends AppCompatActivity {
                     add = status.equals("waiting_payment");
                     break;
                 case 2:
-                    add = status.equals("pending") || status.equals("processing")
-                            || status.equals("packed");
+                    add = status.equals("pending") || status.equals("paid_verified")
+                            || status.equals("processing") || status.equals("packed")
+                            || status.equals("ready_to_ship");
                     break;
                 case 3:
                     add = status.equals("shipped");
@@ -322,8 +325,16 @@ public class MyOrdersActivity extends AppCompatActivity {
                     apiService.cancelOrder(token, txId).enqueue(new Callback<ApiResponse<Object>>() {
                         @Override
                         public void onResponse(Call<ApiResponse<Object>> call, Response<ApiResponse<Object>> response) {
-                            Toast.makeText(MyOrdersActivity.this, "Pesanan Dibatalkan", Toast.LENGTH_SHORT).show();
-                            fetchOrders();
+                            if (response.isSuccessful()) {
+                                Toast.makeText(MyOrdersActivity.this, "Pesanan berhasil dibatalkan", Toast.LENGTH_SHORT).show();
+                                fetchOrders();
+                            } else {
+                                String msg = "Gagal membatalkan pesanan";
+                                try {
+                                    if (response.errorBody() != null) msg = response.errorBody().string();
+                                } catch (Exception ignored) {}
+                                Toast.makeText(MyOrdersActivity.this, msg, Toast.LENGTH_LONG).show();
+                            }
                         }
 
                         @Override
@@ -397,6 +408,10 @@ public class MyOrdersActivity extends AppCompatActivity {
     class MyOrderAdapter extends RecyclerView.Adapter<MyOrderAdapter.VH> {
         private final List<Map<String, Object>> data = new ArrayList<>();
 
+        private String getBaseStorageUrl() {
+            return ApiClient.BASE_URL.replace("api/", "storage/");
+        }
+
         void setData(List<Map<String, Object>> newData) {
             data.clear();
             data.addAll(newData);
@@ -422,47 +437,144 @@ public class MyOrdersActivity extends AppCompatActivity {
         public void onBindViewHolder(@NonNull VH h, int position) {
             Map<String, Object> order = data.get(position);
 
-            // Seller / Shop name
+            // ===== Status Section =====
+            String status = String.valueOf(order.get("status"));
+            h.tvStatusText.setText(statusLabel(status));
+            h.tvStatusText.setTextColor(statusColor(status));
+
+            // Status icon color
+            h.ivStatusIcon.setColorFilter(statusColor(status));
+
+            // Date
+            String createdAt = String.valueOf(order.get("created_at"));
+            if (createdAt != null && !createdAt.equals("null") && createdAt.length() > 10) {
+                String dateStr = createdAt.substring(0, 10).replace("-", "-");
+                String timeStr = createdAt.length() >= 16 ? createdAt.substring(11, 16) : "";
+                h.tvOrderDate.setText("pada " + dateStr + " " + timeStr + ".");
+                h.tvOrderDate.setVisibility(View.VISIBLE);
+            } else {
+                h.tvOrderDate.setVisibility(View.GONE);
+            }
+
+            // ===== Store Section =====
             Map<String, Object> seller = (Map<String, Object>) order.get("seller");
             h.tvName.setText(seller != null ? String.valueOf(seller.get("name")) : "Toko Penjual");
-            h.ivIcon.setImageResource(R.drawable.ic_baseline_store_24);
 
-            // Status
-            String status = String.valueOf(order.get("status"));
-            h.tvStatus.setText(statusLabel(status));
-            h.tvStatus.setBackgroundTintList(android.content.res.ColorStateList.valueOf(statusColor(status)));
+            // Store badge label
+            h.tvStatusBadge.setText("Toko");
+            h.tvStatusBadge.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFFEC5B13));
 
-            // Items summary
+            // ===== Product Section =====
             List<Map<String, Object>> items = (List<Map<String, Object>>) order.get("items");
-            StringBuilder sb = new StringBuilder();
-            if (items != null) {
-                for (Map<String, Object> item : items) {
-                    int qty = (int) Double.parseDouble(String.valueOf(item.get("quantity")));
-                    Map<String, Object> prod = (Map<String, Object>) item.get("product");
-                    String name = prod != null ? String.valueOf(prod.get("name")) : "Produk";
-                    sb.append(qty).append("x ").append(name).append("\n");
+            if (items != null && !items.isEmpty()) {
+                Map<String, Object> firstItem = items.get(0);
+                int qty = (int) Double.parseDouble(String.valueOf(firstItem.get("quantity")));
+                Map<String, Object> prod = (Map<String, Object>) firstItem.get("product");
+
+                if (prod != null) {
+                    h.tvProductName.setText(String.valueOf(prod.get("name")));
+                    h.tvProductVariant.setText("x" + qty);
+
+                    double price = Double.parseDouble(String.valueOf(firstItem.get("price")));
+                    h.tvProductPrice.setText(String.format("Rp%,.0f", price * qty));
+
+                    // Product image
+                    String imageUrl = null;
+                    Object imageObj = prod.get("image");
+                    Log.d("OrderImage", "prod keys: " + prod.keySet().toString());
+                    Log.d("OrderImage", "imageObj: " + imageObj + " | class: " + (imageObj != null ? imageObj.getClass().getName() : "null"));
+                    if (imageObj != null && !String.valueOf(imageObj).equals("null")) {
+                        imageUrl = String.valueOf(imageObj);
+                    }
+                    Log.d("OrderImage", "imageUrl after parse: " + imageUrl);
+
+                    if (imageUrl != null && !imageUrl.isEmpty()) {
+                        if (!imageUrl.startsWith("http")) {
+                            imageUrl = getBaseStorageUrl() + imageUrl;
+                        }
+                        Log.d("OrderImage", "Final URL: " + imageUrl);
+                        String finalUrl = imageUrl;
+                        Glide.with(h.itemView.getContext())
+                                .load(imageUrl)
+                                .placeholder(R.mipmap.ic_launcher)
+                                .error(R.mipmap.ic_launcher)
+                                .centerCrop()
+                                .listener(new com.bumptech.glide.request.RequestListener<android.graphics.drawable.Drawable>() {
+                                    @Override
+                                    public boolean onLoadFailed(@androidx.annotation.Nullable com.bumptech.glide.load.engine.GlideException e,
+                                            Object model, com.bumptech.glide.request.target.Target<android.graphics.drawable.Drawable> target,
+                                            boolean isFirstResource) {
+                                        Log.e("OrderImage", "GLIDE FAILED for: " + finalUrl, e);
+                                        if (e != null) {
+                                            for (Throwable t : e.getRootCauses()) {
+                                                Log.e("OrderImage", "Root cause: " + t.getMessage());
+                                            }
+                                        }
+                                        return false;
+                                    }
+                                    @Override
+                                    public boolean onResourceReady(android.graphics.drawable.Drawable resource, Object model,
+                                            com.bumptech.glide.request.target.Target<android.graphics.drawable.Drawable> target,
+                                            com.bumptech.glide.load.DataSource dataSource, boolean isFirstResource) {
+                                        Log.d("OrderImage", "GLIDE SUCCESS for: " + finalUrl);
+                                        return false;
+                                    }
+                                })
+                                .into(h.ivProductImage);
+                    } else {
+                        Log.d("OrderImage", "No image, using placeholder");
+                        h.ivProductImage.setImageResource(R.mipmap.ic_launcher);
+                    }
+                } else {
+                    h.tvProductName.setText("Produk");
+                    h.tvProductVariant.setText("x" + qty);
+                    h.tvProductPrice.setText("");
+                    h.ivProductImage.setImageResource(R.mipmap.ic_launcher);
                 }
+
+                // More items indicator
+                if (items.size() > 1) {
+                    h.tvMoreItems.setVisibility(View.VISIBLE);
+                    h.tvMoreItems.setText("+ " + (items.size() - 1) + " produk lainnya");
+                } else {
+                    h.tvMoreItems.setVisibility(View.GONE);
+                }
+                h.llFirstProduct.setVisibility(View.VISIBLE);
+            } else {
+                h.llFirstProduct.setVisibility(View.GONE);
+                h.tvMoreItems.setVisibility(View.GONE);
             }
-            h.tvItems.setText(sb.toString().trim());
+
+            // ===== Info Section =====
+            String paymentMethod = null;
+            Object pmObj = order.get("payment_method");
+            if (pmObj != null && !String.valueOf(pmObj).equals("null")) {
+                paymentMethod = String.valueOf(pmObj);
+            }
+            h.tvPaymentMethod.setText(paymentMethod != null ? paymentMethod : "-");
 
             // Total
             double total = Double.parseDouble(String.valueOf(order.get("total_amount")));
             h.tvTotal.setText(String.format("Rp %,.0f", total));
 
-            // Navigate to OrderDetailActivity on card click (unless already reviewed and we
-            // want to prevent click)
+            // ===== Navigate to Detail =====
             int txId = (int) Double.parseDouble(String.valueOf(order.get("id")));
             Map<String, Object> review = (Map<String, Object>) order.get("review");
             boolean isReviewed = review != null;
 
+            // Rincian Pesanan button
+            h.btnRincianPesanan.setOnClickListener(v -> {
+                Intent intent = new Intent(MyOrdersActivity.this, OrderDetailActivity.class);
+                intent.putExtra("transaction_id", txId);
+                intent.putExtra("is_seller", false);
+                startActivity(intent);
+            });
+
+            // Card click also opens detail
             h.itemView.setOnClickListener(v -> {
                 if (isReviewed) {
                     Toast.makeText(MyOrdersActivity.this, "Pesanan ini sudah dinilai (Hanya Baca)", Toast.LENGTH_SHORT)
                             .show();
-                    // If user wants "tidak bisa diclick", we can return here.
-                    // But if they want "atau hanya read only", we proceed but ensure it's read
-                    // only.
-                    // Proceeding to detail which is already read-only for reviewed items.
                 }
                 Intent intent = new Intent(MyOrdersActivity.this, OrderDetailActivity.class);
                 intent.putExtra("transaction_id", txId);
@@ -470,21 +582,25 @@ public class MyOrdersActivity extends AppCompatActivity {
                 startActivity(intent);
             });
 
-            // Action buttons
+            // ===== Action Buttons =====
             h.btnPrimary.setVisibility(View.GONE);
             h.btnSecondary.setVisibility(View.GONE);
+            h.llActionButtons.setVisibility(View.GONE);
 
             if ("waiting_payment".equals(status)) {
+                h.llActionButtons.setVisibility(View.VISIBLE);
                 h.btnPrimary.setVisibility(View.VISIBLE);
                 h.btnPrimary.setText("Upload Bukti");
                 h.btnPrimary.setOnClickListener(v -> openFilePickerForProof(txId));
             } else if ("shipped".equals(status)) {
+                h.llActionButtons.setVisibility(View.VISIBLE);
                 h.btnPrimary.setVisibility(View.VISIBLE);
                 h.btnPrimary.setText("Pesanan Diterima");
                 h.btnPrimary.setOnClickListener(v -> confirmReceived(txId));
             }
 
             if ("cancelled".equals(status)) {
+                h.llActionButtons.setVisibility(View.VISIBLE);
                 h.btnSecondary.setVisibility(View.VISIBLE);
                 h.btnSecondary.setText("Hapus Pesanan");
                 h.btnSecondary.setOnClickListener(v -> deleteOrder(txId));
@@ -507,24 +623,17 @@ public class MyOrdersActivity extends AppCompatActivity {
 
         private String statusLabel(String status) {
             switch (status) {
-                case "waiting_payment":
-                    return "Belum Bayar";
-                case "pending":
-                    return "Verifikasi Pembayaran";
-                case "processing":
-                    return "Diproses";
-                case "packed":
-                    return "Dikemas";
-                case "shipped":
-                    return "Dikirim";
-                case "received":
-                    return "Diterima";
-                case "completed":
-                    return "Selesai";
-                case "cancelled":
-                    return "Dibatalkan";
-                default:
-                    return status;
+                case "waiting_payment":  return "Belum Bayar";
+                case "pending":          return "Verifikasi Pembayaran";
+                case "paid_verified":    return "Pembayaran Terverifikasi";
+                case "processing":       return "Diproses";
+                case "packed":           return "Dikemas";
+                case "ready_to_ship":    return "Siap Dikirim";
+                case "shipped":          return "Dikirim";
+                case "received":         return "Diterima";
+                case "completed":        return "Selesai";
+                case "cancelled":        return "Dibatalkan";
+                default:                 return status;
             }
         }
 
@@ -533,8 +642,10 @@ public class MyOrdersActivity extends AppCompatActivity {
                 case "waiting_payment":
                 case "pending":
                     return 0xFFE65100;
+                case "paid_verified":
                 case "processing":
                 case "packed":
+                case "ready_to_ship":
                     return 0xFF1565C0;
                 case "shipped":
                     return 0xFF1976D2;
@@ -549,19 +660,47 @@ public class MyOrdersActivity extends AppCompatActivity {
         }
 
         class VH extends RecyclerView.ViewHolder {
-            TextView tvName, tvStatus, tvItems, tvTotal;
+            // Status section
+            TextView tvStatusText, tvOrderDate;
+            ImageView ivStatusIcon;
+            // Store section
+            TextView tvName, tvStatusBadge;
             ImageView ivIcon;
-            MaterialButton btnPrimary, btnSecondary;
+            // Product section
+            TextView tvProductName, tvProductVariant, tvProductPrice, tvMoreItems;
+            ImageView ivProductImage;
+            LinearLayout llFirstProduct;
+            // Info section
+            TextView tvPaymentMethod, tvTotal;
+            // Buttons
+            LinearLayout llActionButtons;
+            MaterialButton btnPrimary, btnSecondary, btnRincianPesanan;
 
             VH(View itemView) {
                 super(itemView);
+                // Status section
+                tvStatusText = itemView.findViewById(R.id.tvStatusText);
+                tvOrderDate = itemView.findViewById(R.id.tvOrderDate);
+                ivStatusIcon = itemView.findViewById(R.id.ivStatusIcon);
+                // Store section
                 tvName = itemView.findViewById(R.id.tvHeaderName);
                 ivIcon = itemView.findViewById(R.id.ivHeaderIcon);
-                tvStatus = itemView.findViewById(R.id.tvStatusBadge);
-                tvItems = itemView.findViewById(R.id.tvOrderItems);
+                tvStatusBadge = itemView.findViewById(R.id.tvStatusBadge);
+                // Product section
+                tvProductName = itemView.findViewById(R.id.tvProductName);
+                tvProductVariant = itemView.findViewById(R.id.tvProductVariant);
+                tvProductPrice = itemView.findViewById(R.id.tvProductPrice);
+                tvMoreItems = itemView.findViewById(R.id.tvMoreItems);
+                ivProductImage = itemView.findViewById(R.id.ivProductImage);
+                llFirstProduct = itemView.findViewById(R.id.llFirstProduct);
+                // Info section
+                tvPaymentMethod = itemView.findViewById(R.id.tvPaymentMethod);
                 tvTotal = itemView.findViewById(R.id.tvTotalAmount);
+                // Buttons
+                llActionButtons = itemView.findViewById(R.id.llActionButtons);
                 btnPrimary = itemView.findViewById(R.id.btnPrimary);
                 btnSecondary = itemView.findViewById(R.id.btnSecondary);
+                btnRincianPesanan = itemView.findViewById(R.id.btnRincianPesanan);
             }
         }
     }

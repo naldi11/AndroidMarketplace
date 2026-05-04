@@ -44,27 +44,39 @@ public class ProofImageAdapter extends RecyclerView.Adapter<ProofImageAdapter.Vi
                 .centerCrop()
                 .into(holder.imageView);
         
-        // Delete button click
+        // Delete button click — use getAdapterPosition() to avoid stale index after shifts
         holder.btnDelete.setOnClickListener(v -> {
+            int pos = holder.getAdapterPosition();
+            if (pos == RecyclerView.NO_POSITION) return;
             new androidx.appcompat.app.AlertDialog.Builder(context)
                     .setTitle("Hapus Gambar")
                     .setMessage("Apakah Anda yakin ingin menghapus gambar ini?")
                     .setPositiveButton("Hapus", (dialog, which) -> {
-                        images.remove(position);
-                        notifyDataSetChanged();
+                        int p = holder.getAdapterPosition();
+                        if (p != RecyclerView.NO_POSITION) {
+                            images.remove(p);
+                            notifyItemRemoved(p);
+                            notifyItemRangeChanged(p, images.size());
+                        }
                     })
                     .setNegativeButton("Batal", null)
                     .show();
         });
-        
+
         // Image preview click
         holder.imageView.setOnClickListener(v -> {
+            int pos = holder.getAdapterPosition();
+            if (pos == RecyclerView.NO_POSITION) return;
             new androidx.appcompat.app.AlertDialog.Builder(context)
                     .setTitle("Pratinjau Gambar")
                     .setMessage("Pilih tindakan:")
                     .setPositiveButton("Hapus", (dialog, which) -> {
-                        images.remove(position);
-                        notifyDataSetChanged();
+                        int p = holder.getAdapterPosition();
+                        if (p != RecyclerView.NO_POSITION) {
+                            images.remove(p);
+                            notifyItemRemoved(p);
+                            notifyItemRangeChanged(p, images.size());
+                        }
                     })
                     .setNegativeButton("Tutup", null)
                     .show();

@@ -14,84 +14,15 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- Header: Shop/Buyer Name & Status -->
+        <!-- ===== Status Section (like Shopee top banner) ===== -->
         <LinearLayout
+            android:id="@+id/llStatusSection"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:padding="14dp"
-            android:background="#FDFDFD">
-
-            <ImageView
-                android:id="@+id/ivHeaderIcon"
-                android:layout_width="18dp"
-                android:layout_height="18dp"
-                android:src="@drawable/ic_baseline_store_24"
-                app:tint="@color/text_dark" />
-
-            <TextView
-                android:id="@+id/tvHeaderName"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="10dp"
-                android:text="Nama"
-                android:textColor="@color/text_dark"
-                android:textSize="14sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tvStatusBadge"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="@drawable/bg_discount_badge"
-                android:backgroundTint="@color/primary_orange"
-                android:paddingHorizontal="10dp"
-                android:paddingVertical="4dp"
-                android:text="Status"
-                android:textColor="@color/white"
-                android:textSize="10sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@color/grey_divider" />
-
-        <!-- Order Items Section -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:padding="14dp"
-            android:orientation="vertical">
-
-            <TextView
-                android:id="@+id/tvOrderItems"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="1x Nama Produk"
-                android:textColor="#555555"
-                android:textSize="13sp"
-                android:lineSpacingExtra="4dp"
-                android:maxLines="3"
-                android:ellipsize="end" />
-
-        </LinearLayout>
-
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@color/grey_divider" />
-
-        <!-- Footer: Total & Actions -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:padding="12dp">
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="14dp">
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -100,11 +31,237 @@
                 android:orientation="vertical">
 
                 <TextView
+                    android:id="@+id/tvStatusText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:text="Selesai"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="#2E7D32" />
+
+                <TextView
+                    android:id="@+id/tvOrderDate"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="pada 04-04-2026 15:30."
+                    android:textColor="#888888"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <!-- Status Icon (checkmark circle) -->
+            <ImageView
+                android:id="@+id/ivStatusIcon"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@android:drawable/ic_menu_info_details"
+                app:tint="#2E7D32"
+                android:scaleType="fitCenter" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#F0F0F0" />
+
+        <!-- ===== Store/Seller Section ===== -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="12dp">
+
+            <!-- Store Badge -->
+            <TextView
+                android:id="@+id/tvStatusBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_discount_badge"
+                android:backgroundTint="@color/primary_orange"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="3dp"
+                android:text="Toko"
+                android:textColor="@color/white"
+                android:textSize="9sp"
+                android:textStyle="bold" />
+
+            <ImageView
+                android:id="@+id/ivHeaderIcon"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tvHeaderName"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:text="Nama Toko"
+                android:textColor="@color/text_dark"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:singleLine="true"
+                android:ellipsize="end" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="›"
+                android:textColor="#CCCCCC"
+                android:textSize="22sp"
+                android:layout_marginStart="8dp" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#F0F0F0" />
+
+        <!-- ===== Product Section (Shopee Style) ===== -->
+        <LinearLayout
+            android:id="@+id/llProductItems"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="12dp">
+
+            <!-- First Product Row -->
+            <LinearLayout
+                android:id="@+id/llFirstProduct"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <!-- Product Image -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
+                    app:cardCornerRadius="6dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="#EEEEEE">
+
+                    <ImageView
+                        android:id="@+id/ivProductImage"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="centerCrop"
+                        android:src="@mipmap/ic_launcher"
+                        android:background="#F8F8F8" />
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Product Info -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="12dp"
+                    android:orientation="vertical"
+                    android:layout_gravity="top">
+
+                    <TextView
+                        android:id="@+id/tvProductName"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Nama Produk"
+                        android:textColor="#333333"
+                        android:textSize="14sp"
+                        android:maxLines="2"
+                        android:ellipsize="end"
+                        android:lineSpacingExtra="2dp" />
+
+                    <TextView
+                        android:id="@+id/tvProductVariant"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:text="x1"
+                        android:textColor="#AAAAAA"
+                        android:textSize="12sp"
+                        android:singleLine="true" />
+
+                    <!-- Price aligned right -->
+                    <TextView
+                        android:id="@+id/tvProductPrice"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="Rp 0"
+                        android:textColor="#333333"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:gravity="end" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Additional items indicator -->
+            <TextView
+                android:id="@+id/tvMoreItems"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="+ 2 produk lainnya"
+                android:textColor="#AAAAAA"
+                android:textSize="12sp"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#F0F0F0" />
+
+        <!-- ===== Info Rows Section (like Shopee detail) ===== -->
+        <LinearLayout
+            android:id="@+id/llInfoSection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="10dp">
+
+            <!-- Payment Method Row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingVertical="4dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Metode pembayaran"
+                    android:textColor="#888888"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:id="@+id/tvPaymentMethod"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="-"
+                    android:textColor="#333333"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <!-- Total Row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingVertical="4dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
                     android:text="Total Pesanan"
-                    android:textSize="11sp"
-                    android:textColor="#757575" />
+                    android:textColor="#888888"
+                    android:textSize="13sp" />
 
                 <TextView
                     android:id="@+id/tvTotalAmount"
@@ -113,36 +270,81 @@
                     android:text="Rp 0"
                     android:textColor="@color/primary_orange"
                     android:textStyle="bold"
-                    android:textSize="15sp" />
+                    android:textSize="14sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#F0F0F0" />
+
+        <!-- ===== Bottom: Rincian Pesanan Button + Action Buttons ===== -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="10dp">
+
+            <!-- Action buttons row -->
+            <LinearLayout
+                android:id="@+id/llActionButtons"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="end"
+                android:visibility="gone">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSecondary"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:layout_marginEnd="8dp"
+                    android:text="Secondary"
+                    android:textSize="11sp"
+                    android:paddingHorizontal="12dp"
+                    android:textAllCaps="false"
+                    app:cornerRadius="8dp"
+                    app:strokeColor="@color/wishlist_red"
+                    android:textColor="@color/wishlist_red"
+                    android:visibility="gone" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPrimary"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:text="Primary"
+                    android:textSize="11sp"
+                    android:paddingHorizontal="12dp"
+                    android:textAllCaps="false"
+                    android:backgroundTint="@color/primary_orange"
+                    app:cornerRadius="8dp"
+                    android:visibility="gone" />
             </LinearLayout>
 
+            <!-- Rincian Pesanan Button (full width, outlined) -->
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnSecondary"
+                android:id="@+id/btnRincianPesanan"
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:layout_marginEnd="8dp"
-                android:text="Secondary"
-                android:textSize="11sp"
-                android:paddingHorizontal="12dp"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:text="Rincian Pesanan"
+                android:textSize="14sp"
                 android:textAllCaps="false"
-                app:cornerRadius="8dp"
-                app:strokeColor="@color/wishlist_red"
-                android:textColor="@color/wishlist_red"
-                android:visibility="gone" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnPrimary"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:text="Primary"
-                android:textSize="11sp"
-                android:paddingHorizontal="12dp"
-                android:textAllCaps="false"
-                android:backgroundTint="@color/primary_orange"
-                app:cornerRadius="8dp"
-                android:visibility="gone" />
-
+                android:textColor="#333333"
+                app:strokeColor="#DDDDDD"
+                app:strokeWidth="1dp"
+                app:cornerRadius="8dp" />
         </LinearLayout>
+
+        <!-- Hidden tvOrderItems for backward compat -->
+        <TextView
+            android:id="@+id/tvOrderItems"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="gone" />
+
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.OpenableColumns;
+import android.view.View;
 import android.widget.Toast;
 import android.database.Cursor;
 
@@ -49,6 +50,9 @@ public class PaymentActivity extends AppCompatActivity {
                     selectedImageUris.add(result.getData().getData());
                     proofImageAdapter.notifyDataSetChanged();
                     binding.btnSubmitProof.setEnabled(true);
+                    // Show preview of first selected image
+                    binding.cardProofPreview.setVisibility(View.VISIBLE);
+                    Glide.with(this).load(selectedImageUris.get(0)).into(binding.ivProofPreview);
                 }
             });
 
@@ -75,9 +79,11 @@ public class PaymentActivity extends AppCompatActivity {
             return;
         }
 
-        binding.tvInstruction
-                .setText("Silakan transfer ke rekening BCA 1234567890 a.n Octania Market.\n\nSimpan pesanan ini ID #"
-                        + transactionId + " sebagai referensi berita acara Anda.");
+        binding.tvInstruction.setText("Memuat informasi pembayaran...");
+        loadPaymentInstruction();
+
+        // Hide preview card until image is selected
+        binding.cardProofPreview.setVisibility(View.GONE);
 
         // Setup RecyclerView for multiple proof images
         proofImageAdapter = new ProofImageAdapter(this, selectedImageUris);
@@ -91,6 +97,37 @@ public class PaymentActivity extends AppCompatActivity {
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(intent);
         });
+    }
+
+    private void loadPaymentInstruction() {
+        apiService.getSettingByKey("payment_info").enqueue(
+                new Callback<com.octania.marketplace.data.model.ApiResponse<java.util.Map<String, String>>>() {
+                    @Override
+                    public void onResponse(
+                            Call<com.octania.marketplace.data.model.ApiResponse<java.util.Map<String, String>>> call,
+                            Response<com.octania.marketplace.data.model.ApiResponse<java.util.Map<String, String>>> response) {
+                        String instruction;
+                        if (response.isSuccessful() && response.body() != null
+                                && response.body().getData() != null
+                                && response.body().getData().get("value") != null) {
+                            instruction = response.body().getData().get("value");
+                        } else {
+                            instruction = "Silakan transfer ke rekening yang tertera di halaman profil toko.\n"
+                                    + "Hubungi admin jika memerlukan bantuan.";
+                        }
+                        binding.tvInstruction.setText(instruction
+                                + "\n\nID Pesanan: #" + transactionId);
+                    }
+
+                    @Override
+                    public void onFailure(
+                            Call<com.octania.marketplace.data.model.ApiResponse<java.util.Map<String, String>>> call,
+                            Throwable t) {
+                        binding.tvInstruction.setText(
+                                "Silakan hubungi admin untuk mendapatkan informasi rekening.\n"
+                                        + "\nID Pesanan: #" + transactionId);
+                    }
+                });
     }
 
     private void openImageChooser() {
@@ -116,10 +153,25 @@ public class PaymentActivity extends AppCompatActivity {
         binding.btnSubmitProof.setEnabled(false);
         binding.btnSubmitProof.setText("Mengunggah...");
 
+        // Upload all images sequentially
+        uploadNextProof(0);
+    }
+
+    private void uploadNextProof(int index) {
+        if (index >= selectedImageUris.size()) {
+            // All images uploaded successfully
+            Toast.makeText(PaymentActivity.this, "Semua bukti pembayaran berhasil diunggah", Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(PaymentActivity.this, HomeActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            return;
+        }
+
+        binding.btnSubmitProof.setText("Mengunggah " + (index + 1) + "/" + selectedImageUris.size() + "...");
+
         try {
-            // For now, upload first image only (can be extended for multiple uploads)
-            Uri firstImageUri = selectedImageUris.get(0);
-            java.io.File imageFile = createTempFileFromUri(firstImageUri);
+            Uri imageUri = selectedImageUris.get(index);
+            java.io.File imageFile = createTempFileFromUri(imageUri);
             RequestBody requestFile = RequestBody.create(MediaType.parse("image/jpeg"), imageFile);
             MultipartBody.Part body = MultipartBody.Part.createFormData("proof_of_payment", imageFile.getName(),
                     requestFile);
@@ -129,37 +181,31 @@ public class PaymentActivity extends AppCompatActivity {
                 @Override
                 public void onResponse(Call<ApiResponse<Object>> call, Response<ApiResponse<Object>> response) {
                     if (response.isSuccessful()) {
-                        Toast.makeText(PaymentActivity.this, "Bukti pembayaran berhasil diunggah", Toast.LENGTH_SHORT)
-                                .show();
-                        Intent intent = new Intent(PaymentActivity.this, HomeActivity.class);
-                        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                        startActivity(intent);
+                        // Upload next image
+                        uploadNextProof(index + 1);
                     } else {
                         binding.btnSubmitProof.setEnabled(true);
-                        binding.btnSubmitProof.setText("Kirim Bukti Pembayaran");
+                        binding.btnSubmitProof.setText("KIRIM BUKTI PEMBAYARAN");
                         try {
                             String errorBody = response.errorBody() != null ? response.errorBody().string()
                                     : "Unknown error";
                             android.util.Log.e("UploadProof", "Error HTTP " + response.code() + ": " + errorBody);
-                            Toast.makeText(PaymentActivity.this, "Gagal: " + response.code(), Toast.LENGTH_SHORT)
-                                    .show();
-                        } catch (Exception e) {
-                        }
-                        Toast.makeText(PaymentActivity.this, "Gagal mengunggah bukti", Toast.LENGTH_SHORT).show();
+                        } catch (Exception e) {}
+                        Toast.makeText(PaymentActivity.this, "Gagal upload gambar ke-" + (index + 1), Toast.LENGTH_SHORT).show();
                     }
                 }
 
                 @Override
                 public void onFailure(Call<ApiResponse<Object>> call, Throwable t) {
                     binding.btnSubmitProof.setEnabled(true);
-                    binding.btnSubmitProof.setText("Kirim Bukti Pembayaran");
+                    binding.btnSubmitProof.setText("KIRIM BUKTI PEMBAYARAN");
                     Toast.makeText(PaymentActivity.this, "Jaringan Error: " + t.getMessage(), Toast.LENGTH_SHORT)
                             .show();
                 }
             });
         } catch (Exception e) {
             binding.btnSubmitProof.setEnabled(true);
-            binding.btnSubmitProof.setText("Kirim Bukti Pembayaran");
+            binding.btnSubmitProof.setText("KIRIM BUKTI PEMBAYARAN");
             Toast.makeText(this, "Error membaca file: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }

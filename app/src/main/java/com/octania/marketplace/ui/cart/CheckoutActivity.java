@@ -162,7 +162,11 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
     @Override
     protected void onResume() {
         super.onResume();
-        loadUserAddresses();
+        // Only reload addresses when returning from address management screen.
+        // Initial load is handled in onCreate via loadUserAddresses().
+        if (userAddresses.isEmpty()) {
+            loadUserAddresses();
+        }
     }
 
     private void setupRecyclerView() {

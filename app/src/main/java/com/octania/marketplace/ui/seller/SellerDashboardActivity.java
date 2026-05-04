@@ -152,29 +152,28 @@ public class SellerDashboardActivity extends AppCompatActivity {
                     ApiResponse<Object> apiResponse = response.body();
                     if ("success".equals(apiResponse.getStatus()) && apiResponse.getData() != null) {
                         try {
-                            // Parse API response to DashboardData
                             Gson gson = new Gson();
                             String json = gson.toJson(apiResponse.getData());
                             DashboardData data = gson.fromJson(json, DashboardData.class);
                             updateUI(data);
                         } catch (Exception e) {
                             e.printStackTrace();
-                            loadDummyData();
+                            showDashboardError("Gagal memproses data dashboard.");
                         }
                     }
                 } else {
-                    // Load dummy data for demo
-                    loadDummyData();
+                    String msg = "Gagal memuat dashboard";
+                    try {
+                        if (response.errorBody() != null) msg += ": " + response.errorBody().string();
+                    } catch (Exception ignored) {}
+                    showDashboardError(msg);
                 }
             }
 
             @Override
             public void onFailure(Call<ApiResponse<Object>> call, Throwable t) {
                 binding.progressBar.setVisibility(View.GONE);
-                Toast.makeText(SellerDashboardActivity.this, 
-                    "Gagal memuat data: " + t.getMessage(), Toast.LENGTH_SHORT).show();
-                // Load dummy data for demo
-                loadDummyData();
+                showDashboardError("Koneksi gagal: " + t.getMessage());
             }
         });
     }
@@ -255,41 +254,13 @@ public class SellerDashboardActivity extends AppCompatActivity {
         binding.pieChartStatus.invalidate();
     }
 
-    private void loadDummyData() {
-        // Dummy data for demonstration
-        DashboardData dummyData = new DashboardData();
-        dummyData.totalSales = 2500000;
-        dummyData.totalOrders = 45;
-        dummyData.totalProducts = 12;
-        dummyData.conversionRate = 68;
-
-        // Dummy sales trend
-        dummyData.salesTrend = new ArrayList<>();
-        dummyData.salesTrend.add(new SalesData("Sen", 150000));
-        dummyData.salesTrend.add(new SalesData("Sel", 280000));
-        dummyData.salesTrend.add(new SalesData("Rab", 200000));
-        dummyData.salesTrend.add(new SalesData("Kam", 350000));
-        dummyData.salesTrend.add(new SalesData("Jum", 420000));
-        dummyData.salesTrend.add(new SalesData("Sab", 380000));
-        dummyData.salesTrend.add(new SalesData("Min", 320000));
-
-        // Dummy top products
-        dummyData.topProducts = new ArrayList<>();
-        dummyData.topProducts.add(new ProductSalesData("Laptop", 12));
-        dummyData.topProducts.add(new ProductSalesData("Mouse", 25));
-        dummyData.topProducts.add(new ProductSalesData("Keyboard", 18));
-        dummyData.topProducts.add(new ProductSalesData("Headset", 15));
-        dummyData.topProducts.add(new ProductSalesData("Monitor", 8));
-
-        // Dummy order status
-        dummyData.orderStatus = new OrderStatusData();
-        dummyData.orderStatus.pending = 5;
-        dummyData.orderStatus.processing = 12;
-        dummyData.orderStatus.shipped = 8;
-        dummyData.orderStatus.completed = 18;
-        dummyData.orderStatus.cancelled = 2;
-
-        updateUI(dummyData);
+    private void showDashboardError(String message) {
+        binding.progressBar.setVisibility(View.GONE);
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+        binding.tvTotalSales.setText("-");
+        binding.tvTotalOrders.setText("-");
+        binding.tvTotalProducts.setText("-");
+        binding.tvConversionRate.setText("-");
     }
 
     private String formatRupiah(double amount) {

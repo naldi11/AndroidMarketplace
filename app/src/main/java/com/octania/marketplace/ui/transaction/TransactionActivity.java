@@ -86,7 +86,11 @@ public class TransactionActivity extends AppCompatActivity {
 
             @Override
             public void onItemClick(Transaction transaction) {
-                // Future expansion: Detail view for transaction
+                Intent intent = new Intent(TransactionActivity.this,
+                        com.octania.marketplace.ui.seller.OrderDetailActivity.class);
+                intent.putExtra("transaction_id", transaction.getId());
+                intent.putExtra("is_seller", false);
+                startActivity(intent);
             }
         });
         binding.rvTransactions.setLayoutManager(new LinearLayoutManager(this));

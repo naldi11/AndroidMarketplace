@@ -71,6 +71,9 @@ public class OrderDetailActivity extends AppCompatActivity {
     private int selectedTxId = -1;
     private ActivityResultLauncher<Intent> filePickerLauncher;
     private ActivityResultLauncher<Intent> paymentProofLauncher;
+    private ActivityResultLauncher<Intent> shipProofPickerLauncher;
+    private Uri selectedShipProofUri = null;
+    private android.widget.ImageView dialogShipProofPreview = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,6 +89,7 @@ public class OrderDetailActivity extends AppCompatActivity {
         bindViews();
         setupFilePicker();
         setupPaymentProofPicker();
+        setupShipProofPicker();
 
         if (transactionId == -1) {
             ToastManager.showToast(this, "ID Pesanan tidak valid");
@@ -170,6 +174,129 @@ public class OrderDetailActivity extends AppCompatActivity {
                         }
                     }
                 });
+    }
+
+    private void setupShipProofPicker() {
+        shipProofPickerLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        selectedShipProofUri = result.getData().getData();
+                        if (dialogShipProofPreview != null && selectedShipProofUri != null) {
+                            dialogShipProofPreview.setImageURI(selectedShipProofUri);
+                            dialogShipProofPreview.setVisibility(android.view.View.VISIBLE);
+                        }
+                    }
+                });
+    }
+
+    private void showShipDialog(int txId) {
+        selectedShipProofUri = null;
+        dialogShipProofPreview = null;
+
+        android.widget.LinearLayout layout = new android.widget.LinearLayout(this);
+        layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        layout.setPadding(48, 24, 48, 8);
+
+        android.widget.EditText etCourier = new android.widget.EditText(this);
+        etCourier.setHint("Nama Kurir (JNE, JNT, dll)");
+        layout.addView(etCourier);
+
+        android.widget.EditText etTracking = new android.widget.EditText(this);
+        etTracking.setHint("Nomor Resi");
+        layout.addView(etTracking);
+
+        com.google.android.material.button.MaterialButton btnPickImage =
+                new com.google.android.material.button.MaterialButton(this);
+        btnPickImage.setText("Pilih Foto Bukti Kirim");
+        btnPickImage.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+            intent.setType("image/*");
+            shipProofPickerLauncher.launch(intent);
+        });
+        layout.addView(btnPickImage);
+
+        dialogShipProofPreview = new android.widget.ImageView(this);
+        dialogShipProofPreview.setLayoutParams(new android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT, 400));
+        dialogShipProofPreview.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
+        dialogShipProofPreview.setVisibility(android.view.View.GONE);
+        layout.addView(dialogShipProofPreview);
+
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Kirim Pesanan")
+                .setView(layout)
+                .setPositiveButton("Kirim", (d, w) -> {
+                    String courier = etCourier.getText().toString().trim();
+                    String tracking = etTracking.getText().toString().trim();
+                    if (courier.isEmpty() || tracking.isEmpty()) {
+                        ToastManager.showToast(this, "Isi nama kurir dan nomor resi");
+                        return;
+                    }
+                    if (selectedShipProofUri == null) {
+                        ToastManager.showToast(this, "Wajib upload foto bukti pengiriman!");
+                        return;
+                    }
+                    shipOrder(txId, courier, tracking, selectedShipProofUri);
+                })
+                .setNegativeButton("Batal", null)
+                .show();
+    }
+
+    private void shipOrder(int txId, String courier, String tracking, Uri proofUri) {
+        String token = "Bearer " + sessionManager.getToken();
+        btnAction.setEnabled(false);
+        btnAction.setText("Mengirim...");
+        try {
+            java.io.InputStream is = getContentResolver().openInputStream(proofUri);
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            byte[] buf = new byte[1024];
+            int len;
+            while ((len = is.read(buf)) != -1) bos.write(buf, 0, len);
+            byte[] imageBytes = bos.toByteArray();
+            is.close();
+
+            okhttp3.RequestBody reqFile = okhttp3.RequestBody.create(
+                    okhttp3.MediaType.parse("image/*"), imageBytes);
+            okhttp3.MultipartBody.Part imagePart = okhttp3.MultipartBody.Part
+                    .createFormData("shipping_proof", "proof.jpg", reqFile);
+            okhttp3.RequestBody courierReq = okhttp3.RequestBody.create(
+                    okhttp3.MediaType.parse("text/plain"), courier);
+            okhttp3.RequestBody trackingReq = okhttp3.RequestBody.create(
+                    okhttp3.MediaType.parse("text/plain"), tracking);
+
+            apiService.shipOrder(token, txId, courierReq, trackingReq, imagePart)
+                    .enqueue(new Callback<ApiResponse<Object>>() {
+                        @Override
+                        public void onResponse(Call<ApiResponse<Object>> call,
+                                Response<ApiResponse<Object>> response) {
+                            if (response.isSuccessful() && response.body() != null) {
+                                ToastManager.showToast(OrderDetailActivity.this,
+                                        response.body().getMessage() != null
+                                                ? response.body().getMessage()
+                                                : "Pesanan berhasil dikirim!");
+                                loadDetail();
+                            } else {
+                                btnAction.setEnabled(true);
+                                btnAction.setText("Kirim Pesanan");
+                                ToastManager.showToast(OrderDetailActivity.this,
+                                        "Gagal mengirim pesanan, coba lagi.");
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(Call<ApiResponse<Object>> call, Throwable t) {
+                            btnAction.setEnabled(true);
+                            btnAction.setText("Kirim Pesanan");
+                            ToastManager.showToast(OrderDetailActivity.this,
+                                    "Koneksi Error: " + t.getMessage());
+                        }
+                    });
+        } catch (Exception e) {
+            btnAction.setEnabled(true);
+            btnAction.setText("Kirim Pesanan");
+            ToastManager.showToast(this, "Gagal memproses gambar: " + e.getMessage());
+        }
     }
 
     private void loadDetail() {
@@ -308,13 +435,60 @@ public class OrderDetailActivity extends AppCompatActivity {
                 cardProof.setVisibility(View.GONE);
             }
         } else {
-            String proof = safeString(order.get("payment_proof"), null);
+            // Payment proof can be: plain string, JSON array string, or List
+            String proof = null;
+            Object proofObj = order.get("payment_proof");
+            android.util.Log.d("ProofDebug", "payment_proof raw type: " + (proofObj != null ? proofObj.getClass().getName() : "null"));
+            android.util.Log.d("ProofDebug", "payment_proof raw value: " + proofObj);
+            
+            if (proofObj instanceof java.util.List) {
+                java.util.List<?> proofList = (java.util.List<?>) proofObj;
+                if (!proofList.isEmpty()) {
+                    proof = String.valueOf(proofList.get(0));
+                }
+            } else if (proofObj instanceof String) {
+                String proofStr = (String) proofObj;
+                if (!proofStr.isEmpty() && !proofStr.equals("null")) {
+                    // Check if it's a JSON array string like '["path1","path2"]'
+                    if (proofStr.startsWith("[")) {
+                        try {
+                            org.json.JSONArray arr = new org.json.JSONArray(proofStr);
+                            if (arr.length() > 0) {
+                                proof = arr.getString(0);
+                            }
+                        } catch (org.json.JSONException e) {
+                            proof = proofStr; // fallback to raw string
+                        }
+                    } else {
+                        proof = proofStr;
+                    }
+                }
+            }
+            
+            android.util.Log.d("ProofDebug", "proof resolved: " + proof);
+            
             if (proof != null && !proof.isEmpty()) {
                 cardProof.setVisibility(View.VISIBLE);
                 if (tvProofTitle != null)
                     tvProofTitle.setText("Bukti Pembayaran");
-                Glide.with(this).load(getBaseStorageUrl() + proof).into(ivProofImage);
                 String finalImgUrl = getBaseStorageUrl() + proof;
+                android.util.Log.d("ProofDebug", "Loading URL: " + finalImgUrl);
+                
+                Glide.with(this)
+                    .load(finalImgUrl)
+                    .listener(new com.bumptech.glide.request.RequestListener<android.graphics.drawable.Drawable>() {
+                        @Override
+                        public boolean onLoadFailed(@androidx.annotation.Nullable com.bumptech.glide.load.engine.GlideException e, Object model, com.bumptech.glide.request.target.Target<android.graphics.drawable.Drawable> target, boolean isFirstResource) {
+                            android.util.Log.e("ProofDebug", "Glide FAILED for: " + model, e);
+                            return false;
+                        }
+                        @Override
+                        public boolean onResourceReady(android.graphics.drawable.Drawable resource, Object model, com.bumptech.glide.request.target.Target<android.graphics.drawable.Drawable> target, com.bumptech.glide.load.DataSource dataSource, boolean isFirstResource) {
+                            android.util.Log.d("ProofDebug", "Glide SUCCESS for: " + model);
+                            return false;
+                        }
+                    })
+                    .into(ivProofImage);
                 ivProofImage.setOnClickListener(v -> showFullScreenImage(finalImgUrl));
             } else {
                 cardProof.setVisibility(View.GONE);
@@ -339,11 +513,6 @@ public class OrderDetailActivity extends AppCompatActivity {
                     String finalPath = getBaseStorageUrl() + path;
                     iv.setOnClickListener(v -> showFullScreenImage(finalPath));
                     llReceiptProofs.addView(iv);
-
-                    // Click to enlarge (optional)
-                    iv.setOnClickListener(v -> {
-                        // Open full screen or similar
-                    });
                 }
             } else {
                 cardReceiptProofs.setVisibility(View.GONE);
@@ -536,12 +705,7 @@ public class OrderDetailActivity extends AppCompatActivity {
                     btnAction.setText("Kirim Pesanan");
                     btnAction.setEnabled(true);
                     btnAction.setAlpha(1f);
-                    btnAction.setOnClickListener(v -> {
-                        // Logic for shipping already exists in shipOrder (usually separate screen or
-                        // dialog)
-                        // For now let's just use statusLabel or manual Trigger
-                        ToastManager.showToast(this, "Silakan masukkan nomor resi");
-                    });
+                    btnAction.setOnClickListener(v -> showShipDialog(txId));
                 } else {
                     btnAction.setText("Pesanan Diproses");
                     btnAction.setEnabled(false);
@@ -720,9 +884,12 @@ public class OrderDetailActivity extends AppCompatActivity {
         }
 
         if (hasLargeFile) {
+            btnAction.setEnabled(true);
+            btnAction.setText("Konfirmasi Pesanan Diterima");
             Toast.makeText(this,
-                    "file terlalu besar (> 2MB). Silakan unggah file yang lebih kecil",
+                    "Salah satu file terlalu besar (> 2MB). Pilih file yang lebih kecil.",
                     Toast.LENGTH_LONG).show();
+            return;
         }
 
         if (parts.isEmpty()) {
@@ -935,26 +1102,18 @@ public class OrderDetailActivity extends AppCompatActivity {
 
     private String statusLabel(String status) {
         switch (status) {
-            case "waiting_payment":
-                return "Belum Bayar";
-            case "pending":
-                return "Verifikasi Pembayaran";
-            case "processing":
-                return "Diproses";
-            case "packed":
-                return "Dikemas";
-            case "shipped":
-                return "Dikirim";
-            case "received":
-                return "Diterima";
-            case "completed":
-                return "Selesai";
-            case "cancelled":
-                return "Dibatalkan";
-            case "payment_rejected":
-                return "Pembayaran Ditolak";
-            default:
-                return status;
+            case "waiting_payment":    return "Belum Bayar";
+            case "pending":            return "Verifikasi Pembayaran";
+            case "paid_verified":      return "Pembayaran Terverifikasi";
+            case "processing":         return "Diproses";
+            case "packed":             return "Dikemas";
+            case "ready_to_ship":      return "Siap Dikirim";
+            case "shipped":            return "Dikirim";
+            case "received":           return "Diterima";
+            case "completed":          return "Selesai";
+            case "cancelled":          return "Dibatalkan";
+            case "payment_rejected":   return "Pembayaran Ditolak";
+            default:                   return status;
         }
     }
 
@@ -963,8 +1122,10 @@ public class OrderDetailActivity extends AppCompatActivity {
             case "waiting_payment":
             case "pending":
                 return 0xFFE65100;
+            case "paid_verified":
             case "processing":
             case "packed":
+            case "ready_to_ship":
                 return 0xFF1565C0;
             case "shipped":
                 return 0xFF1976D2;

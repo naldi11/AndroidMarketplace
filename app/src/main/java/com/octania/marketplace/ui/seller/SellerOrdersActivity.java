@@ -455,6 +455,10 @@ public class SellerOrdersActivity extends AppCompatActivity {
     class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.VH> {
         private final List<Map<String, Object>> data = new ArrayList<>();
 
+        private String getBaseStorageUrl() {
+            return ApiClient.BASE_URL.replace("api/", "storage/");
+        }
+
         void setData(List<Map<String, Object>> newData) {
             data.clear();
             data.addAll(newData);
@@ -478,36 +482,109 @@ public class SellerOrdersActivity extends AppCompatActivity {
         @SuppressWarnings("unchecked")
         public void onBindViewHolder(@NonNull VH h, int position) {
             Map<String, Object> order = data.get(position);
+
+            // ===== Status Section =====
+            String status = String.valueOf(order.get("status"));
+            h.tvStatusText.setText(statusLabel(status));
+            h.tvStatusText.setTextColor(statusColor(status));
+            h.ivStatusIcon.setColorFilter(statusColor(status));
+
+            String createdAt = String.valueOf(order.get("created_at"));
+            if (createdAt != null && !createdAt.equals("null") && createdAt.length() > 10) {
+                String dateStr = createdAt.substring(0, 10);
+                String timeStr = createdAt.length() >= 16 ? createdAt.substring(11, 16) : "";
+                h.tvOrderDate.setText("pada " + dateStr + " " + timeStr + ".");
+                h.tvOrderDate.setVisibility(View.VISIBLE);
+            } else {
+                h.tvOrderDate.setVisibility(View.GONE);
+            }
+
+            // ===== Buyer Section =====
             Map<String, Object> buyer = (Map<String, Object>) order.get("buyer");
             h.tvName.setText(buyer != null ? String.valueOf(buyer.get("name")) : "Pembeli");
-            h.ivIcon.setImageResource(android.R.drawable.ic_menu_myplaces);
+            h.tvStatusBadge.setText("Pembeli");
+            h.tvStatusBadge.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFF1976D2));
 
-            String status = String.valueOf(order.get("status"));
-            h.tvStatus.setText(statusLabel(status));
-            h.tvStatus.setBackgroundTintList(android.content.res.ColorStateList.valueOf(statusColor(status)));
-
+            // ===== Product Section =====
             List<Map<String, Object>> items = (List<Map<String, Object>>) order.get("items");
-            StringBuilder sb = new StringBuilder();
-            if (items != null) {
-                for (Map<String, Object> item : items) {
-                    int qty = (int) Double.parseDouble(String.valueOf(item.get("quantity")));
-                    Map<String, Object> prod = (Map<String, Object>) item.get("product");
-                    sb.append(qty).append("x ").append(prod != null ? String.valueOf(prod.get("name")) : "Produk")
-                            .append("\n");
+            if (items != null && !items.isEmpty()) {
+                Map<String, Object> firstItem = items.get(0);
+                int qty = (int) Double.parseDouble(String.valueOf(firstItem.get("quantity")));
+                Map<String, Object> prod = (Map<String, Object>) firstItem.get("product");
+
+                if (prod != null) {
+                    h.tvProductName.setText(String.valueOf(prod.get("name")));
+                    h.tvProductVariant.setText("x" + qty);
+
+                    double price = Double.parseDouble(String.valueOf(firstItem.get("price")));
+                    h.tvProductPrice.setText(String.format("Rp%,.0f", price * qty));
+
+                    String imageUrl = null;
+                    Object imageObj = prod.get("image");
+                    if (imageObj != null && !String.valueOf(imageObj).equals("null")) {
+                        imageUrl = String.valueOf(imageObj);
+                    }
+
+                    if (imageUrl != null && !imageUrl.isEmpty()) {
+                        if (!imageUrl.startsWith("http")) {
+                            imageUrl = getBaseStorageUrl() + imageUrl;
+                        }
+                        com.bumptech.glide.Glide.with(h.itemView.getContext())
+                                .load(imageUrl)
+                                .placeholder(R.mipmap.ic_launcher)
+                                .error(R.mipmap.ic_launcher)
+                                .centerCrop()
+                                .into(h.ivProductImage);
+                    } else {
+                        h.ivProductImage.setImageResource(R.mipmap.ic_launcher);
+                    }
+                } else {
+                    h.tvProductName.setText("Produk");
+                    h.tvProductVariant.setText("x" + qty);
+                    h.tvProductPrice.setText("");
+                    h.ivProductImage.setImageResource(R.mipmap.ic_launcher);
                 }
+
+                if (items.size() > 1) {
+                    h.tvMoreItems.setVisibility(View.VISIBLE);
+                    h.tvMoreItems.setText("+ " + (items.size() - 1) + " produk lainnya");
+                } else {
+                    h.tvMoreItems.setVisibility(View.GONE);
+                }
+                h.llFirstProduct.setVisibility(View.VISIBLE);
+            } else {
+                h.llFirstProduct.setVisibility(View.GONE);
+                h.tvMoreItems.setVisibility(View.GONE);
             }
-            h.tvItems.setText(sb.toString().trim());
+
+            // ===== Info Section =====
+            String paymentMethod = null;
+            Object pmObj = order.get("payment_method");
+            if (pmObj != null && !String.valueOf(pmObj).equals("null")) {
+                paymentMethod = String.valueOf(pmObj);
+            }
+            h.tvPaymentMethod.setText(paymentMethod != null ? paymentMethod : "-");
 
             double total = Double.parseDouble(String.valueOf(order.get("total_amount")));
             h.tvTotal.setText(String.format("Rp %,.0f", total));
 
             int txId = (int) Double.parseDouble(String.valueOf(order.get("id")));
 
-            // Action buttons
+            // Rincian Pesanan button
+            h.btnRincianPesanan.setOnClickListener(v -> {
+                Intent intent = new Intent(SellerOrdersActivity.this, OrderDetailActivity.class);
+                intent.putExtra("transaction_id", txId);
+                intent.putExtra("is_seller", true);
+                startActivity(intent);
+            });
+
+            // ===== Action Buttons =====
             h.btnPrimary.setVisibility(View.GONE);
             h.btnSecondary.setVisibility(View.GONE);
+            h.llActionButtons.setVisibility(View.GONE);
 
             if ("paid_verified".equals(status)) {
+                h.llActionButtons.setVisibility(View.VISIBLE);
                 h.btnPrimary.setVisibility(View.VISIBLE);
                 h.btnPrimary.setText("📦 Proses Pesanan");
                 h.btnPrimary.setBackgroundTintList(
@@ -517,6 +594,7 @@ public class SellerOrdersActivity extends AppCompatActivity {
                         .setMessage("Kemas pesanan?")
                         .setPositiveButton("Ya", (d, w) -> updateOrderStatus(txId, "packed")).show());
             } else if ("packed".equals(status)) {
+                h.llActionButtons.setVisibility(View.VISIBLE);
                 h.btnPrimary.setVisibility(View.VISIBLE);
                 h.btnPrimary.setText("Kirim Pesanan");
                 h.btnPrimary.setBackgroundTintList(
@@ -525,6 +603,7 @@ public class SellerOrdersActivity extends AppCompatActivity {
             }
 
             if ("cancelled".equals(status)) {
+                h.llActionButtons.setVisibility(View.VISIBLE);
                 h.btnSecondary.setVisibility(View.VISIBLE);
                 h.btnSecondary.setText("Hapus");
                 h.btnSecondary.setOnClickListener(v -> new AlertDialog.Builder(SellerOrdersActivity.this)
@@ -584,19 +663,42 @@ public class SellerOrdersActivity extends AppCompatActivity {
         }
 
         class VH extends RecyclerView.ViewHolder {
-            TextView tvName, tvStatus, tvItems, tvTotal;
+            // Status section
+            TextView tvStatusText, tvOrderDate;
+            ImageView ivStatusIcon;
+            // Store/Buyer section
+            TextView tvName, tvStatusBadge;
             ImageView ivIcon;
-            MaterialButton btnPrimary, btnSecondary;
+            // Product section
+            TextView tvProductName, tvProductVariant, tvProductPrice, tvMoreItems;
+            ImageView ivProductImage;
+            LinearLayout llFirstProduct;
+            // Info section
+            TextView tvPaymentMethod, tvTotal;
+            // Buttons
+            LinearLayout llActionButtons;
+            MaterialButton btnPrimary, btnSecondary, btnRincianPesanan;
 
             VH(View v) {
                 super(v);
+                tvStatusText = v.findViewById(R.id.tvStatusText);
+                tvOrderDate = v.findViewById(R.id.tvOrderDate);
+                ivStatusIcon = v.findViewById(R.id.ivStatusIcon);
                 tvName = v.findViewById(R.id.tvHeaderName);
                 ivIcon = v.findViewById(R.id.ivHeaderIcon);
-                tvStatus = v.findViewById(R.id.tvStatusBadge);
-                tvItems = v.findViewById(R.id.tvOrderItems);
+                tvStatusBadge = v.findViewById(R.id.tvStatusBadge);
+                tvProductName = v.findViewById(R.id.tvProductName);
+                tvProductVariant = v.findViewById(R.id.tvProductVariant);
+                tvProductPrice = v.findViewById(R.id.tvProductPrice);
+                tvMoreItems = v.findViewById(R.id.tvMoreItems);
+                ivProductImage = v.findViewById(R.id.ivProductImage);
+                llFirstProduct = v.findViewById(R.id.llFirstProduct);
+                tvPaymentMethod = v.findViewById(R.id.tvPaymentMethod);
                 tvTotal = v.findViewById(R.id.tvTotalAmount);
+                llActionButtons = v.findViewById(R.id.llActionButtons);
                 btnPrimary = v.findViewById(R.id.btnPrimary);
                 btnSecondary = v.findViewById(R.id.btnSecondary);
+                btnRincianPesanan = v.findViewById(R.id.btnRincianPesanan);
             }
         }
     }

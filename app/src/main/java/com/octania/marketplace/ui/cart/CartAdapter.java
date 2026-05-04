@@ -118,8 +118,16 @@ public class CartAdapter extends RecyclerView.Adapter<CartAdapter.CartViewHolder
                     if (item.getQuantity() > 1) {
                         listener.onQuantityChanged(item, pos, item.getQuantity() - 1);
                     } else {
-                        // If it's 1, optionally prompt for deletion, or just do nothing
-                        listener.onDeleteClick(item, pos);
+                        new androidx.appcompat.app.AlertDialog.Builder(context)
+                                .setTitle("Hapus Produk")
+                                .setMessage("Hapus produk ini dari keranjang?")
+                                .setPositiveButton("Hapus", (dialog, which) -> {
+                                    int p = getAdapterPosition();
+                                    if (p != RecyclerView.NO_POSITION)
+                                        listener.onDeleteClick(cartItems.get(p), p);
+                                })
+                                .setNegativeButton("Batal", null)
+                                .show();
                     }
                 }
             });
