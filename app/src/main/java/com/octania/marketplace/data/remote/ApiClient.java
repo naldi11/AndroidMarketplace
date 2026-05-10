@@ -8,7 +8,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class ApiClient {
     // Gunakan IP lokal komputer (misal: 192.168.1.7) jika menggunakan HP Fisik
     // (terkoneksi di Wi-Fi yang sama).
-    public static final String BASE_URL = "http://192.168.1.8:8000/api/";
+    public static final String BASE_URL = "http://192.168.1.7:8000/api/";
     //public static final String BASE_URL = "http://172.20.10.10:8000/api/";
     private static Retrofit retrofit = null;
 

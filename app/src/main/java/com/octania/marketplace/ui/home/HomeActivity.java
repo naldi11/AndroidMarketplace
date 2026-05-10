@@ -55,9 +55,11 @@ public class HomeActivity extends AppCompatActivity {
     private CategoryAdapter categoryAdapter;
     private VoucherAdapter voucherAdapter;
     private ProductActionHelper actionHelper;
+    private DistanceFilterAdapter distanceFilterAdapter;
 
     private String searchQuery = null;
     private String selectedCategory = null;
+    private Integer selectedDistance = null;
 
     private FusedLocationProviderClient fusedLocationClient;
     private Double currentLat = null;
@@ -82,6 +84,7 @@ public class HomeActivity extends AppCompatActivity {
             return;
         }
 
+        setupDistanceFilter();
         setupCategoryRecycler();
         setupVoucherRecycler();
         setupProductRecycler();
@@ -99,9 +102,24 @@ public class HomeActivity extends AppCompatActivity {
         fetchAdBanners();
         fetchLocationAndProducts();
         handleRefreshIntent(getIntent());
+
+        binding.btnFilter.setOnClickListener(v -> binding.drawerLayout.openDrawer(androidx.core.view.GravityCompat.END));
+        binding.btnApplyFilter.setOnClickListener(v -> {
+            binding.drawerLayout.closeDrawer(androidx.core.view.GravityCompat.END);
+            fetchLocationAndProducts(); // Ambil lokasi terbaru lalu loadProducts
+        });
     }
 
     // ==================== SETUP ====================
+
+    private void setupDistanceFilter() {
+        distanceFilterAdapter = new DistanceFilterAdapter(this, radius -> {
+            selectedDistance = radius;
+        });
+        binding.rvDistanceFilter.setLayoutManager(
+                new androidx.recyclerview.widget.GridLayoutManager(this, 2));
+        binding.rvDistanceFilter.setAdapter(distanceFilterAdapter);
+    }
 
     private void fetchAdBanners() {
         apiService.getAdBanners().enqueue(new Callback<com.octania.marketplace.data.model.response.AdBannerResponse>() {
@@ -382,15 +400,20 @@ public class HomeActivity extends AppCompatActivity {
             if (location != null) {
                 currentLat = location.getLatitude();
                 currentLng = location.getLongitude();
+            } else {
+                ToastManager.showToast(this, "Lokasi tidak aktif. Aktifkan GPS untuk filter jarak.");
             }
             loadProducts();
-        }).addOnFailureListener(e -> loadProducts());
+        }).addOnFailureListener(e -> {
+            ToastManager.showToast(this, "Gagal mendapatkan lokasi: " + e.getMessage());
+            loadProducts();
+        });
     }
 
     @SuppressWarnings("unchecked")
     private void loadProducts() {
         String token = sessionManager.isLoggedIn() ? "Bearer " + sessionManager.getToken() : null;
-        apiService.getProducts(token, searchQuery, selectedCategory, currentLat, currentLng, 1)
+        apiService.getProducts(token, searchQuery, selectedCategory, currentLat, currentLng, selectedDistance, 1000, 1000, 1, 1, 1)
                 .enqueue(new Callback<ApiResponse<Object>>() {
                     @Override
                     public void onResponse(Call<ApiResponse<Object>> call,
@@ -401,22 +424,52 @@ public class HomeActivity extends AppCompatActivity {
                             
                             if ("success".equals(apiResponse.getStatus()) && apiResponse.getData() != null) {
                                 try {
-                                    Map<String, Object> dataMap = (Map<String, Object>) apiResponse.getData();
-                                    Object itemsObj = dataMap.get("data");
-
-                                    if (itemsObj != null) {
-                                        Gson gson = new Gson();
-                                        String json = gson.toJson(itemsObj);
-                                        
-                                        Type listType = new TypeToken<List<Product>>() {
-                                        }.getType();
-                                        List<Product> products = gson.fromJson(json, listType);
-
-                                        // Ensure products list is not null
-                                        if (products == null) {
-                                            products = new ArrayList<>();
+                                    Gson gson = new Gson();
+                                    com.google.gson.JsonElement jsonElement = gson.toJsonTree(apiResponse.getData());
+                                    List<Product> products = new ArrayList<>();
+                                    
+                                    if (jsonElement.isJsonArray()) {
+                                        // Case 1: Direct list
+                                        Type listType = new TypeToken<List<Product>>() {}.getType();
+                                        products = gson.fromJson(jsonElement, listType);
+                                    } else if (jsonElement.isJsonObject()) {
+                                        // Case 2: Pagination object
+                                        com.google.gson.JsonObject dataObj = jsonElement.getAsJsonObject();
+                                        if (dataObj.has("data") && dataObj.get("data").isJsonArray()) {
+                                            Type listType = new TypeToken<List<Product>>() {}.getType();
+                                            products = gson.fromJson(dataObj.get("data"), listType);
                                         }
+                                    }
 
+                                    if (products != null && !products.isEmpty()) {
+                                        // Strict Range-based distance filtering
+                                        if (selectedDistance != null) {
+                                            List<Product> filtered = new ArrayList<>();
+                                            for (Product p : products) {
+                                                Double dist = p.getDistanceKm();
+                                                if (dist == null) continue;
+
+                                                boolean match = false;
+                                                if (selectedDistance == 1) {
+                                                    match = dist <= 1.0;
+                                                } else if (selectedDistance == 2) {
+                                                    match = dist > 1.0 && dist <= 2.0;
+                                                } else if (selectedDistance == 3) {
+                                                    match = dist > 2.0 && dist <= 3.0;
+                                                } else if (selectedDistance == 4) {
+                                                    match = dist > 3.0 && dist <= 4.0;
+                                                } else if (selectedDistance == 5) {
+                                                    match = dist > 4.0 && dist <= 5.0;
+                                                } else if (selectedDistance == 100) {
+                                                    match = dist > 5.0;
+                                                }
+
+                                                if (match) {
+                                                    filtered.add(p);
+                                                }
+                                            }
+                                            products = filtered;
+                                        }
                                         // Inject Ad Banners every 4 items
                                         List<Product> productsWithAds = new ArrayList<>();
                                         for (int i = 0; i < products.size(); i++) {
@@ -431,7 +484,6 @@ public class HomeActivity extends AppCompatActivity {
 
                                         productAdapter.updateData(productsWithAds);
                                     } else {
-                                        // No data items - tampilkan empty state
                                         productAdapter.updateData(new ArrayList<>());
                                     }
                                 } catch (Exception e) {

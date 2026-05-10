@@ -387,44 +387,6 @@
             app:cornerRadius="12dp" />
     </LinearLayout>
 
-    <LinearLayout
-        android:id="@+id/llReportActions"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        android:layout_marginBottom="88dp"
-        android:padding="16dp"
-        android:orientation="vertical"
-        android:background="@android:color/transparent">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnReport"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Laporkan Masalah"
-            android:textSize="13sp"
-            android:textAllCaps="false"
-            android:textColor="#D32F2F"
-            app:strokeColor="#D32F2F"
-            app:strokeWidth="1dp"
-            app:backgroundTint="@color/white"
-            app:cornerRadius="8dp" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnContactAdmin"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="Hubungi Admin (WhatsApp)"
-            android:textSize="13sp"
-            android:textAllCaps="false"
-            android:textColor="#2E7D32"
-            app:strokeColor="#2E7D32"
-            app:strokeWidth="1dp"
-            app:backgroundTint="@color/white"
-            app:cornerRadius="8dp"
-            app:icon="@android:drawable/stat_notify_chat"
-            app:iconTint="#2E7D32" />
-    </LinearLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

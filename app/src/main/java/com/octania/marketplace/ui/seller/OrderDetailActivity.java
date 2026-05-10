@@ -61,7 +61,7 @@ public class OrderDetailActivity extends AppCompatActivity {
     private TextView tvPaymentMethod, tvShippingAddress, tvCourier, tvTrackingNumber;
     private LinearLayout llItems, rowDiscount, rowShippingCost;
     private MaterialButton btnAction, btnCancel;
-    private MaterialButton btnReport, btnContactAdmin;
+
     private MaterialCardView cardProof;
     private ImageView ivProofImage;
     private TextView tvProofTitle;
@@ -135,8 +135,7 @@ public class OrderDetailActivity extends AppCompatActivity {
         ivProofImage = findViewById(R.id.ivProofImage);
         cardReceiptProofs = findViewById(R.id.cardReceiptProofs);
         llReceiptProofs = findViewById(R.id.llReceiptProofs);
-        btnReport = findViewById(R.id.btnReport);
-        btnContactAdmin = findViewById(R.id.btnContactAdmin);
+
     }
 
     private void setupFilePicker() {
@@ -524,116 +523,6 @@ public class OrderDetailActivity extends AppCompatActivity {
         // Action button
         Map<String, Object> existingReview = (Map<String, Object>) order.get("review");
         setupActionButton(status, txId, existingReview);
-        setupReportButtons(txId);
-    }
-
-    private void setupReportButtons(int txId) {
-        btnReport.setOnClickListener(v -> showReportDialog(txId));
-        btnContactAdmin.setOnClickListener(v -> contactAdminWhatsApp(txId));
-    }
-
-    private void contactAdminWhatsApp(int txId) {
-        String token = "Bearer " + sessionManager.getToken();
-        apiService.getSettingByKey("admin_whatsapp").enqueue(new Callback<ApiResponse<Map<String, String>>>() {
-            @Override
-            public void onResponse(Call<ApiResponse<Map<String, String>>> call,
-                    Response<ApiResponse<Map<String, String>>> response) {
-                String waNumber = "628123456789"; // Default fallback
-                if (response.isSuccessful() && response.body() != null && response.body().getData() != null) {
-                    waNumber = response.body().getData().get("value");
-                }
-
-                String message = "Halo Admin, Saya ingin melaporkan masalah terkait pesanan #INV-"
-                        + String.format("%05d", txId) + ". [Tuliskan keluhan Anda di sini]";
-                String url = "https://api.whatsapp.com/send?phone=" + waNumber + "&text=" + Uri.encode(message);
-
-                try {
-                    Intent intent = new Intent(Intent.ACTION_VIEW);
-                    intent.setData(Uri.parse(url));
-                    startActivity(intent);
-                } catch (Exception e) {
-                    ToastManager.showToast(OrderDetailActivity.this, "Gagal membuka WhatsApp");
-                }
-            }
-
-            @Override
-            public void onFailure(Call<ApiResponse<Map<String, String>>> call, Throwable t) {
-                // Just use fallback if network fails
-                String message = "Halo Admin, Saya ingin melaporkan masalah terkait pesanan #INV-"
-                        + String.format("%05d", txId);
-                String url = "https://api.whatsapp.com/send?phone=628123456789&text=" + Uri.encode(message);
-                Intent intent = new Intent(Intent.ACTION_VIEW);
-                intent.setData(Uri.parse(url));
-                startActivity(intent);
-            }
-        });
-    }
-
-    private void showReportDialog(int txId) {
-        BottomSheetDialog dialog = new BottomSheetDialog(this);
-        View view = getLayoutInflater().inflate(R.layout.dialog_report_issue, null);
-        dialog.setContentView(view);
-
-        com.google.android.material.button.MaterialButtonToggleGroup toggleGroup = view.findViewById(R.id.toggleGroup);
-        com.google.android.material.textfield.TextInputEditText etReason = view.findViewById(R.id.etReason);
-        com.google.android.material.textfield.TextInputEditText etDescription = view.findViewById(R.id.etDescription);
-        MaterialButton btnSubmit = view.findViewById(R.id.btnSubmitReport);
-
-        btnSubmit.setOnClickListener(v -> {
-            String type = toggleGroup.getCheckedButtonId() == R.id.btnBuyerIssue ? "buyer_issue" : "seller_issue";
-            String reason = etReason.getText().toString().trim();
-            String desc = etDescription.getText().toString().trim();
-
-            if (reason.isEmpty() || desc.isEmpty()) {
-                ToastManager.showToast(this, "Mohon isi alasan dan deskripsi");
-                return;
-            }
-
-            submitReport(txId, type, reason, desc, dialog);
-        });
-
-        com.google.android.material.button.MaterialButton btnBuyerIssue = view.findViewById(R.id.btnBuyerIssue);
-        com.google.android.material.button.MaterialButton btnSellerIssue = view.findViewById(R.id.btnSellerIssue);
-
-        // Set default and hide irrelevant option based on user role
-        if (isSeller) {
-            // Seller can only report Buyer
-            btnSellerIssue.setVisibility(View.GONE);
-            toggleGroup.check(R.id.btnBuyerIssue);
-        } else {
-            // Buyer can only report Seller
-            btnBuyerIssue.setVisibility(View.GONE);
-            toggleGroup.check(R.id.btnSellerIssue);
-        }
-
-        dialog.show();
-    }
-
-    private void submitReport(int txId, String type, String reason, String desc, BottomSheetDialog dialog) {
-        String token = "Bearer " + sessionManager.getToken();
-        btnReport.setEnabled(false);
-        btnReport.setText("Mengirim Laporan...");
-
-        apiService.submitReport(token, txId, type, reason, desc).enqueue(new Callback<ApiResponse<Object>>() {
-            @Override
-            public void onResponse(Call<ApiResponse<Object>> call, Response<ApiResponse<Object>> response) {
-                btnReport.setEnabled(true);
-                btnReport.setText("Laporkan Masalah");
-                if (response.isSuccessful()) {
-                    ToastManager.showToast(OrderDetailActivity.this, "Laporan berhasil terkirim. Admin akan segera meninjau.");
-                    dialog.dismiss();
-                } else {
-                    ToastManager.showToast(OrderDetailActivity.this, "Gagal mengirim laporan");
-                }
-            }
-
-            @Override
-            public void onFailure(Call<ApiResponse<Object>> call, Throwable t) {
-                btnReport.setEnabled(true);
-                btnReport.setText("Laporkan Masalah");
-                ToastManager.showToast(OrderDetailActivity.this, "Error Jaringan: " + t.getMessage());
-            }
-        });
     }
 
     private void setupActionButton(String status, int txId, Map<String, Object> existingReview) {

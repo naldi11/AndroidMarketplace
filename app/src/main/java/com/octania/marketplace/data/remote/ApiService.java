@@ -78,6 +78,11 @@ public interface ApiService {
                         @Query("category") String category,
                         @Query("latitude") Double latitude,
                         @Query("longitude") Double longitude,
+                        @Query("radius") Integer radius,
+                        @Query("per_page") Integer perPage,
+                        @Query("limit") Integer limit,
+                        @Query("all") Integer all,
+                        @Query("no_paginate") Integer noPaginate,
                         @Query("page") Integer page);
 
         @GET("categories")

@@ -185,14 +185,7 @@ public class ProductDetailActivity extends AppCompatActivity {
             }
         }
 
-        // Chat seller
-        binding.llChatSeller.setOnClickListener(v -> {
-            if (product.getUser() != null && product.getUser().getPhone() != null) {
-                openWhatsApp(product.getUser().getPhone(), product.getName());
-            } else {
-                Toast.makeText(this, getString(R.string.wa_num_not_avail), Toast.LENGTH_SHORT).show();
-            }
-        });
+
 
         // Reviews
         renderReviews(product.getReviews());
@@ -298,21 +291,7 @@ public class ProductDetailActivity extends AppCompatActivity {
 
     // ==================== ACTIONS ====================
 
-    private void openWhatsApp(String phone, String productName) {
-        String waNumber = phone;
-        if (waNumber.startsWith("0")) {
-            waNumber = "62" + waNumber.substring(1);
-        }
-        String url = "https://wa.me/" + waNumber + "?text=" + android.net.Uri
-                .encode("Halo, saya tertarik dengan produk " + productName + " yang ada di MarketMahasiswa.");
-        Intent i = new Intent(Intent.ACTION_VIEW);
-        i.setData(android.net.Uri.parse(url));
-        try {
-            startActivity(i);
-        } catch (Exception e) {
-            Toast.makeText(this, getString(R.string.wa_app_not_install), Toast.LENGTH_SHORT).show();
-        }
-    }
+
 
     private void addToCart(boolean navigateToCart) {
         actionHelper.addToCart(productId, 1, new ProductActionHelper.ActionCallback() {

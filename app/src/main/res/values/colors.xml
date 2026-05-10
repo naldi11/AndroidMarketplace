@@ -5,6 +5,7 @@
     <color name="primary_orange_dark">#C74A0E</color>
     <color name="orange_light">#FFF3E0</color>
     <color name="orange_10">#1AEC5B13</color>
+    <color name="orange_5">#FFF8F0</color>
 
     <!-- Neutrals -->
     <color name="black">#FF000000</color>
