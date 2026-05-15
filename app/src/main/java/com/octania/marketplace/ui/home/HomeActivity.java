@@ -30,6 +30,7 @@ import com.google.gson.reflect.TypeToken;
 import com.octania.marketplace.R;
 import com.octania.marketplace.data.model.ApiResponse;
 import com.octania.marketplace.data.model.Product;
+import com.octania.marketplace.data.model.Voucher;
 import com.octania.marketplace.data.remote.ApiClient;
 import com.octania.marketplace.data.remote.ApiService;
 import com.octania.marketplace.databinding.ActivityHomeBinding;
@@ -91,11 +92,22 @@ public class HomeActivity extends AppCompatActivity {
         setupSearch();
         setupBottomNav();
 
-        binding.swipeRefresh.setColorSchemeResources(R.color.primary_orange);
-        binding.swipeRefresh.setOnRefreshListener(this::fetchLocationAndProducts);
+//        binding.swipeRefresh.setColorSchemeResources(R.color.primary_orange);
+//        binding.swipeRefresh.setOnRefreshListener(this::fetchLocationAndProducts);
 
         binding.btnNavCart.setOnClickListener(
                 v -> startActivity(new Intent(this, com.octania.marketplace.ui.cart.CartActivity.class)));
+
+        binding.btnNavChat.setOnClickListener(v -> {
+            if (!sessionManager.isLoggedIn()) {
+                Toast.makeText(this, "Silakan login terlebih dahulu", Toast.LENGTH_SHORT).show();
+                startActivity(new Intent(this, LoginActivity.class));
+                return;
+            }
+            startActivity(new Intent(this, com.octania.marketplace.ui.chat.ConversationsActivity.class));
+        });
+
+        binding.bottomNavInclude.fabScan.setOnClickListener(v -> showScanDialog());
 
         fetchCategories();
         fetchVouchers();
@@ -106,8 +118,18 @@ public class HomeActivity extends AppCompatActivity {
         binding.btnFilter.setOnClickListener(v -> binding.drawerLayout.openDrawer(androidx.core.view.GravityCompat.END));
         binding.btnApplyFilter.setOnClickListener(v -> {
             binding.drawerLayout.closeDrawer(androidx.core.view.GravityCompat.END);
-            fetchLocationAndProducts(); // Ambil lokasi terbaru lalu loadProducts
+            String label = (selectedDistance == null || selectedDistance == 100) ? "semua jarak" : selectedDistance + " KM";
+            android.util.Log.d("FILTER_DEBUG", "Applying Filter -> Radius: " + (selectedDistance != null ? selectedDistance : 100) + " KM");
+            Toast.makeText(this, "Memfilter produk dalam " + label, Toast.LENGTH_SHORT).show();
+            
+            // Re-fetch everything with the new filter
+            binding.swipeRefresh.setRefreshing(true);
+            fetchLocationAndProducts(); 
         });
+    }
+
+    private void showScanDialog() {
+        com.octania.marketplace.utils.NavigationUtils.showScanDialog(this);
     }
 
     // ==================== SETUP ====================
@@ -150,13 +172,22 @@ public class HomeActivity extends AppCompatActivity {
         });
         binding.rvCategories.setLayoutManager(
                 new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+        binding.rvCategories.setNestedScrollingEnabled(false);
         binding.rvCategories.setAdapter(categoryAdapter);
     }
 
     private void setupVoucherRecycler() {
-        voucherAdapter = new VoucherAdapter(this, voucher -> {
-            // Just show code when clicked for now (can copy to clipboard in future)
-            ToastManager.showToast(this, "Gunakan kode: " + voucher.code);
+        voucherAdapter = new VoucherAdapter(this, new VoucherAdapter.OnVoucherClickListener() {
+            @Override
+            public void onVoucherClick(VoucherAdapter.VoucherModel voucher) {
+                // Just show code when clicked for now (can copy to clipboard in future)
+                ToastManager.showToast(HomeActivity.this, "Gunakan kode: " + voucher.code);
+            }
+
+            @Override
+            public void onClaimClick(VoucherAdapter.VoucherModel voucher) {
+                claimVoucher(voucher);
+            }
         });
         binding.rvVouchers.setLayoutManager(
                 new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
@@ -204,7 +235,11 @@ public class HomeActivity extends AppCompatActivity {
         Log.d("HOME_DEBUG", "Setting up ProductAdapter");
         GridLayoutManager gridLayoutManager = new GridLayoutManager(this, 2);
         binding.rvProducts.setLayoutManager(gridLayoutManager);
+        binding.rvProducts.setNestedScrollingEnabled(false);
         binding.rvProducts.setAdapter(productAdapter);
+        
+        // DEBUG: Add color to see where it is
+        binding.rvProducts.setBackgroundColor(android.graphics.Color.parseColor("#10FF0000")); // Very faint red
         
         // Force RecyclerView visibility
         binding.rvProducts.setVisibility(View.VISIBLE);
@@ -293,13 +328,16 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void setupBottomNav() {
-        binding.bottomNav.setSelectedItemId(R.id.nav_home);
-        com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(binding.bottomNav);
+        binding.bottomNavInclude.bottomNav.setSelectedItemId(R.id.nav_home);
+        com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(binding.bottomNavInclude.bottomNav);
 
-        binding.bottomNav.setOnItemSelectedListener(item -> {
+        binding.bottomNavInclude.bottomNav.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
             if (id == R.id.nav_home) {
                 return true;
+            } else if (id == R.id.nav_scan) {
+                showScanDialog();
+                return false; // Jangan seleksi item scan, biar FAB tetap menonjol
             } else if (id == R.id.nav_orders) {
                 startActivity(new Intent(this,
                         com.octania.marketplace.ui.seller.MyOrdersActivity.class));
@@ -332,11 +370,28 @@ public class HomeActivity extends AppCompatActivity {
                         try {
                             Gson gson = new Gson();
                             String json = gson.toJson(apiResponse.getData());
-                            Type listType = new TypeToken<List<Map<String, Object>>>() {
-                            }.getType();
-                            List<Map<String, Object>> categories = gson.fromJson(json, listType);
+                            Type listType = new TypeToken<List<Map<String, Object>>>() {}.getType();
+                            List<Map<String, Object>> rawCategories = gson.fromJson(json, listType);
+                            
+                            List<Map<String, Object>> categories = new ArrayList<>();
+                            for (Map<String, Object> map : rawCategories) {
+                                // Safe extraction
+                                Map<String, Object> category = new java.util.HashMap<>();
+                                Object idObj = map.get("id");
+                                int id = (idObj instanceof Double) ? ((Double) idObj).intValue() : 
+                                         (idObj instanceof Integer) ? (Integer) idObj : 0;
+                                
+                                category.put("id", id);
+                                category.put("name", map.get("name"));
+                                category.put("slug", map.get("slug"));
+                                category.put("icon", map.get("icon"));
+                                categories.add(category);
+                            }
+                            
+                            Log.d("HOME_DEBUG", "Categories loaded: " + categories.size());
                             categoryAdapter.updateData(categories);
-                        } catch (Exception ignored) {
+                        } catch (Exception e) {
+                            Log.e("HOME_DEBUG", "Error parsing categories", e);
                         }
                     }
                 }
@@ -350,31 +405,55 @@ public class HomeActivity extends AppCompatActivity {
 
     private void fetchVouchers() {
         String token = "Bearer " + sessionManager.getToken();
-        apiService.getVouchers(token).enqueue(new Callback<ApiResponse<Object>>() {
+        apiService.getPublicVouchers(token).enqueue(new Callback<ApiResponse<List<Voucher>>>() {
             @Override
-            public void onResponse(Call<ApiResponse<Object>> call, Response<ApiResponse<Object>> response) {
+            public void onResponse(Call<ApiResponse<List<Voucher>>> call, Response<ApiResponse<List<Voucher>>> response) {
                 if (response.isSuccessful() && response.body() != null) {
-                    ApiResponse<Object> apiResponse = response.body();
+                    ApiResponse<List<Voucher>> apiResponse = response.body();
                     if ("success".equals(apiResponse.getStatus()) && apiResponse.getData() != null) {
-                        try {
-                            Gson gson = new Gson();
-                            String json = gson.toJson(apiResponse.getData());
-                            Type listType = new TypeToken<List<VoucherAdapter.VoucherModel>>() {
-                            }.getType();
-                            List<VoucherAdapter.VoucherModel> vouchers = gson.fromJson(json, listType);
-
-                            voucherAdapter.updateData(vouchers);
-                            binding.rvVouchers.setVisibility(vouchers.isEmpty() ? View.GONE : View.VISIBLE);
-                        } catch (Exception e) {
-                            e.printStackTrace();
+                        List<Voucher> vouchers = apiResponse.getData();
+                        List<VoucherAdapter.VoucherModel> models = new ArrayList<>();
+                        for (Voucher v : vouchers) {
+                            VoucherAdapter.VoucherModel m = new VoucherAdapter.VoucherModel();
+                            m.id = v.getId();
+                            m.code = v.getCode();
+                            m.discount_amount = v.getDiscountAmount();
+                            m.min_purchase = v.getMinPurchase();
+                            m.terms = v.getTerms();
+                            m.is_claimed = v.isClaimed();
+                            models.add(m);
                         }
+                        voucherAdapter.updateData(models);
+                        int visibility = models.isEmpty() ? View.GONE : View.VISIBLE;
+                        binding.rvVouchers.setVisibility(visibility);
+                        binding.tvVoucherLabel.setVisibility(visibility);
                     }
                 }
             }
 
             @Override
-            public void onFailure(Call<ApiResponse<Object>> call, Throwable t) {
-                // Ignore failure quietly for vouchers
+            public void onFailure(Call<ApiResponse<List<Voucher>>> call, Throwable t) {
+                // Ignore failure quietly
+            }
+        });
+    }
+
+    private void claimVoucher(VoucherAdapter.VoucherModel model) {
+        String token = "Bearer " + sessionManager.getToken();
+        apiService.claimVoucher(token, model.id).enqueue(new Callback<ApiResponse<Void>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<Void>> call, Response<ApiResponse<Void>> response) {
+                if (response.isSuccessful()) {
+                    ToastManager.showToast(HomeActivity.this, "Voucher berhasil diklaim!");
+                    fetchVouchers(); // Refresh list to update state
+                } else {
+                    ToastManager.showToast(HomeActivity.this, "Gagal klaim voucher: " + response.code());
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<Void>> call, Throwable t) {
+                ToastManager.showToast(HomeActivity.this, "Error: " + t.getMessage());
             }
         });
     }
@@ -386,7 +465,7 @@ public class HomeActivity extends AppCompatActivity {
             // Jika izin lokasi belum diberikan, tetap muat produk tanpa koordinat
             currentLat = null;
             currentLng = null;
-            binding.swipeRefresh.setRefreshing(true);
+//    //        binding.swipeRefresh.setRefreshing(true);
             loadProducts();
             // Opsional: tetap minta izin sekali, tapi tidak bergantung padanya untuk menampilkan produk
             ActivityCompat.requestPermissions(this,
@@ -395,25 +474,44 @@ public class HomeActivity extends AppCompatActivity {
             return;
         }
 
-        binding.swipeRefresh.setRefreshing(true);
-        fusedLocationClient.getLastLocation().addOnSuccessListener(this, location -> {
-            if (location != null) {
-                currentLat = location.getLatitude();
-                currentLng = location.getLongitude();
-            } else {
-                ToastManager.showToast(this, "Lokasi tidak aktif. Aktifkan GPS untuk filter jarak.");
-            }
-            loadProducts();
-        }).addOnFailureListener(e -> {
-            ToastManager.showToast(this, "Gagal mendapatkan lokasi: " + e.getMessage());
-            loadProducts();
-        });
+//        binding.swipeRefresh.setRefreshing(true);
+        fusedLocationClient.requestLocationUpdates(
+            com.google.android.gms.location.LocationRequest.create()
+                .setPriority(com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY)
+                .setInterval(500)
+                .setFastestInterval(250)
+                .setNumUpdates(1),
+            new com.google.android.gms.location.LocationCallback() {
+                @Override
+                public void onLocationResult(@NonNull com.google.android.gms.location.LocationResult locationResult) {
+                    if (locationResult.getLastLocation() != null) {
+                        currentLat = locationResult.getLastLocation().getLatitude();
+                        currentLng = locationResult.getLastLocation().getLongitude();
+                        Log.d("LOCATION_DEBUG", "Updated Location: " + currentLat + ", " + currentLng);
+                    } else {
+                        ToastManager.showToast(HomeActivity.this, "Gagal mendapatkan lokasi terbaru.");
+                    }
+                    loadProducts();
+                }
+            }, android.os.Looper.getMainLooper())
+            .addOnFailureListener(e -> {
+                ToastManager.showToast(this, "Lokasi tidak tersedia: " + e.getMessage());
+                loadProducts();
+            });
     }
 
     @SuppressWarnings("unchecked")
     private void loadProducts() {
         String token = sessionManager.isLoggedIn() ? "Bearer " + sessionManager.getToken() : null;
-        apiService.getProducts(token, searchQuery, selectedCategory, currentLat, currentLng, selectedDistance, 1000, 1000, 1, 1, 1)
+        Integer radius = (selectedDistance != null) ? selectedDistance : 100;
+        
+        Log.d("API_DEBUG", "Fetching Products with: " +
+                "Lat=" + currentLat + 
+                ", Lng=" + currentLng + 
+                ", Radius=" + radius + " KM" +
+                ", Query=" + searchQuery);
+
+        apiService.getProducts(token, searchQuery, selectedCategory, currentLat, currentLng, radius, 1000, 1000, 1, 1, 1)
                 .enqueue(new Callback<ApiResponse<Object>>() {
                     @Override
                     public void onResponse(Call<ApiResponse<Object>> call,
@@ -421,19 +519,21 @@ public class HomeActivity extends AppCompatActivity {
                         binding.swipeRefresh.setRefreshing(false);
                         if (response.isSuccessful() && response.body() != null) {
                             ApiResponse<Object> apiResponse = response.body();
+                            String status = apiResponse.getStatus();
+                            Object data = apiResponse.getData();
                             
-                            if ("success".equals(apiResponse.getStatus()) && apiResponse.getData() != null) {
+                            Log.d("HOME_DEBUG", "API Response: " + status + ", data present: " + (data != null));
+                            
+                            if ("success".equals(status) && data != null) {
                                 try {
                                     Gson gson = new Gson();
-                                    com.google.gson.JsonElement jsonElement = gson.toJsonTree(apiResponse.getData());
+                                    com.google.gson.JsonElement jsonElement = gson.toJsonTree(data);
                                     List<Product> products = new ArrayList<>();
                                     
                                     if (jsonElement.isJsonArray()) {
-                                        // Case 1: Direct list
                                         Type listType = new TypeToken<List<Product>>() {}.getType();
                                         products = gson.fromJson(jsonElement, listType);
                                     } else if (jsonElement.isJsonObject()) {
-                                        // Case 2: Pagination object
                                         com.google.gson.JsonObject dataObj = jsonElement.getAsJsonObject();
                                         if (dataObj.has("data") && dataObj.get("data").isJsonArray()) {
                                             Type listType = new TypeToken<List<Product>>() {}.getType();
@@ -441,68 +541,71 @@ public class HomeActivity extends AppCompatActivity {
                                         }
                                     }
 
-                                    if (products != null && !products.isEmpty()) {
-                                        // Strict Range-based distance filtering
-                                        if (selectedDistance != null) {
-                                            List<Product> filtered = new ArrayList<>();
-                                            for (Product p : products) {
-                                                Double dist = p.getDistanceKm();
-                                                if (dist == null) continue;
+                                    int originalCount = products != null ? products.size() : 0;
+                                    Log.d("HOME_DEBUG", "Products parsed: " + originalCount);
 
-                                                boolean match = false;
-                                                if (selectedDistance == 1) {
-                                                    match = dist <= 1.0;
-                                                } else if (selectedDistance == 2) {
-                                                    match = dist > 1.0 && dist <= 2.0;
-                                                } else if (selectedDistance == 3) {
-                                                    match = dist > 2.0 && dist <= 3.0;
-                                                } else if (selectedDistance == 4) {
-                                                    match = dist > 3.0 && dist <= 4.0;
-                                                } else if (selectedDistance == 5) {
-                                                    match = dist > 4.0 && dist <= 5.0;
-                                                } else if (selectedDistance == 100) {
-                                                    match = dist > 5.0;
+                                    if (products != null && !products.isEmpty()) {
+                                        // Filter by distance on client-side as double-check
+                                        if (selectedDistance != null && selectedDistance < 100) {
+                                            List<Product> filtered = new ArrayList<>();
+                                            double maxDist = (double) selectedDistance;
+                                            
+                                            for (Product p : products) {
+                                                // Get distance from product (it's in KM)
+                                                Double dist = p.getDistanceKm();
+                                                
+                                                // If server doesn't provide distance, try to calculate if possible
+                                                if (dist == null) {
+                                                    // Skip product if distance is unknown during active filtering
+                                                    continue;
                                                 }
 
-                                                if (match) {
+                                                // Log for debugging
+                                                Log.d("DISTANCE_DEBUG", "Product: " + p.getName() + ", Distance: " + dist + " KM, Max: " + maxDist);
+
+                                                if (dist <= maxDist) {
                                                     filtered.add(p);
                                                 }
                                             }
                                             products = filtered;
+                                            Log.d("DISTANCE_DEBUG", "Products after filter: " + products.size());
                                         }
-                                        // Inject Ad Banners every 4 items
+
+                                        // Inject Ads
                                         List<Product> productsWithAds = new ArrayList<>();
                                         for (int i = 0; i < products.size(); i++) {
                                             productsWithAds.add(products.get(i));
-                                            // Insert ad after every 4th actual product
                                             if ((i + 1) % 4 == 0) {
                                                 Product dummyAd = new Product();
-                                                dummyAd.setId(-1); // Marker for AD
+                                                dummyAd.setId(-1);
                                                 productsWithAds.add(dummyAd);
                                             }
                                         }
 
                                         productAdapter.updateData(productsWithAds);
+                                        binding.rvProducts.setVisibility(View.VISIBLE);
+                                        
+                                        if (selectedDistance != null && selectedDistance < 100) {
+                                            Toast.makeText(HomeActivity.this, "Ditemukan " + products.size() + " produk dalam " + selectedDistance + " KM", Toast.LENGTH_SHORT).show();
+                                        } else {
+                                            Toast.makeText(HomeActivity.this, "Berhasil memuat " + originalCount + " produk", Toast.LENGTH_SHORT).show();
+                                        }
                                     } else {
                                         productAdapter.updateData(new ArrayList<>());
+                                        Toast.makeText(HomeActivity.this, "Tidak ada produk ditemukan", Toast.LENGTH_SHORT).show();
                                     }
                                 } catch (Exception e) {
-                                    e.printStackTrace();
+                                    Log.e("HOME_DEBUG", "Parsing error", e);
                                     productAdapter.updateData(new ArrayList<>());
-                                    ToastManager.showToast(HomeActivity.this,
-                                            getString(R.string.server_error));
+                                    Toast.makeText(HomeActivity.this, "Gagal memproses data server", Toast.LENGTH_SHORT).show();
                                 }
                             } else {
-                                // API tidak sukses atau tidak ada data
                                 productAdapter.updateData(new ArrayList<>());
-                                ToastManager.showToast(HomeActivity.this,
-                                        getString(R.string.server_error));
+                                Toast.makeText(HomeActivity.this, "Status API: " + status, Toast.LENGTH_SHORT).show();
                             }
                         } else {
-                            // Response gagal
                             productAdapter.updateData(new ArrayList<>());
-                            ToastManager.showToast(HomeActivity.this,
-                                    getString(R.string.server_error));
+                            Toast.makeText(HomeActivity.this, "Error " + response.code(), Toast.LENGTH_SHORT).show();
                         }
                     }
 
@@ -575,6 +678,8 @@ public class HomeActivity extends AppCompatActivity {
                             }
 
                             updateBadges(cartCount, wishlistCount);
+                            // Simpan ke cache agar activity lain bisa baca
+                            sessionManager.saveBadgeCounts(wishlistCount, cartCount);
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -590,26 +695,9 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void updateBadges(int cartCount, int wishlistCount) {
-        TextView tvCartBadge = binding.tvCartBadge;
-        TextView tvWishlistBadge = binding.tvWishlistBadge;
-
-        if (tvCartBadge != null) {
-            if (cartCount > 0) {
-                tvCartBadge.setText(cartCount > 99 ? "99+" : String.valueOf(cartCount));
-                tvCartBadge.setVisibility(View.VISIBLE);
-            } else {
-                tvCartBadge.setVisibility(View.GONE);
-            }
-        }
-
-        if (tvWishlistBadge != null) {
-            if (wishlistCount > 0) {
-                tvWishlistBadge.setText(wishlistCount > 99 ? "99+" : String.valueOf(wishlistCount));
-                tvWishlistBadge.setVisibility(View.VISIBLE);
-            } else {
-                tvWishlistBadge.setVisibility(View.GONE);
-            }
-        }
+        // Gunakan BadgeUtils agar konsisten dengan activity lain
+        com.octania.marketplace.utils.BadgeUtils.applyBadges(
+                binding.bottomNavInclude.bottomNav, wishlistCount, cartCount);
     }
 
     @Override
@@ -627,7 +715,7 @@ public class HomeActivity extends AppCompatActivity {
                 // User menolak izin: muat produk tanpa koordinat lokasi
                 currentLat = null;
                 currentLng = null;
-                binding.swipeRefresh.setRefreshing(true);
+    //    //        binding.swipeRefresh.setRefreshing(true);
                 loadProducts();
             }
         }
@@ -637,13 +725,17 @@ public class HomeActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         // Reset bottom nav to Home when coming back
-        binding.bottomNav.setSelectedItemId(R.id.nav_home);
-        com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(binding.bottomNav);
+        binding.bottomNavInclude.bottomNav.setSelectedItemId(R.id.nav_home);
+        com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(binding.bottomNavInclude.bottomNav);
         fetchUserCounts();
+        // Update badge di bottom nav via BadgeUtils
+        com.octania.marketplace.utils.BadgeUtils.fetchAndApply(
+                this, sessionManager, binding.bottomNavInclude.bottomNav);
 
         // Always refresh products on resume to ensure data is current
-        binding.swipeRefresh.setRefreshing(true);
-        binding.swipeRefresh.postDelayed(this::fetchLocationAndProducts, 300);
+////        binding.swipeRefresh.setRefreshing(true);
+//        binding.swipeRefresh.postDelayed(this::fetchLocationAndProducts, 300);
+        this.fetchLocationAndProducts();
     }
 
     @Override
@@ -658,8 +750,9 @@ public class HomeActivity extends AppCompatActivity {
             if (productAdapter != null) {
                 productAdapter.clearData();
             }
-            binding.swipeRefresh.setRefreshing(true);
-            binding.swipeRefresh.postDelayed(this::fetchLocationAndProducts, 500);
+//            binding.swipeRefresh.setRefreshing(true);
+//            binding.swipeRefresh.postDelayed(this::fetchLocationAndProducts, 500);
+            this.fetchLocationAndProducts();
             intent.removeExtra("refresh_from_add_product");
         }
     }

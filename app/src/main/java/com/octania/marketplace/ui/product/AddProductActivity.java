@@ -60,7 +60,7 @@ public class AddProductActivity extends AppCompatActivity {
     private List<String> categoryNames = new ArrayList<>();
     private List<Integer> categoryIds = new ArrayList<>();
 
-    private final String[] conditionList = { "Baru", "Bekas" };
+    private final String[] conditionList = { "Seperti Baru", "Bekas" };
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1001;
 
@@ -91,6 +91,20 @@ public class AddProductActivity extends AppCompatActivity {
                     if (selectedImages.size() < 6) {
                         selectedImages.add(currentCameraPhotoUri);
                         imageAdapter.notifyDataSetChanged();
+                    }
+                }
+            });
+
+    private final ActivityResultLauncher<Intent> mapPickerLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+                    String address = result.getData().getStringExtra("picked_address");
+                    currentLat = result.getData().getDoubleExtra("lat", 0.0);
+                    currentLng = result.getData().getDoubleExtra("lng", 0.0);
+                    if (address != null) {
+                        binding.etLocation.setText(address);
+                        binding.tvLocationStatus.setText("Lokasi dipilih dari peta");
                     }
                 }
             });
@@ -132,16 +146,20 @@ public class AddProductActivity extends AppCompatActivity {
         binding.btnSubmit.setOnClickListener(v -> submitProduct());
 
         // Handle location icon click
-        binding.tilLocation.setEndIconOnClickListener(v -> fetchLocation());
+        // Handle location icon click -> Open Map Picker
+        binding.tilLocation.setEndIconOnClickListener(v -> {
+            Intent intent = new Intent(this, com.octania.marketplace.ui.profile.MapPickerActivity.class);
+            mapPickerLauncher.launch(intent);
+        });
 
         fetchLocation();
         setupBottomNav();
     }
 
     private void setupBottomNav() {
-        binding.bottomNav.setSelectedItemId(R.id.nav_add);
-        com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(binding.bottomNav);
-        binding.bottomNav.setOnItemSelectedListener(item -> {
+        binding.bottomNav.bottomNav.setSelectedItemId(R.id.nav_add);
+        com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(binding.bottomNav.bottomNav);
+        binding.bottomNav.bottomNav.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
             if (id == R.id.nav_home) {
                 startActivity(new Intent(this, com.octania.marketplace.ui.home.HomeActivity.class));
@@ -329,7 +347,13 @@ public class AddProductActivity extends AppCompatActivity {
                     discountPriceText.isEmpty() ? "" : discountPriceText);
             RequestBody stockBody = RequestBody.create(MediaType.parse("text/plain"), stock);
             RequestBody categoryIdBody = RequestBody.create(MediaType.parse("text/plain"), categoryId);
-            RequestBody conditionBody = RequestBody.create(MediaType.parse("text/plain"), condition);
+            String conditionValue = "used";
+            if (condition.equals("Seperti Baru")) {
+                conditionValue = "like_new";
+            } else if (condition.equals("Bekas")) {
+                conditionValue = "used";
+            }
+            RequestBody conditionBody = RequestBody.create(MediaType.parse("text/plain"), conditionValue);
             RequestBody weightBody = RequestBody.create(MediaType.parse("text/plain"), finalWeight);
             RequestBody locationBody = RequestBody.create(MediaType.parse("text/plain"), location);
             // Jika lokasi GPS tidak tersedia, kirim string kosong agar backend tetap menerima request.
@@ -350,11 +374,10 @@ public class AddProductActivity extends AppCompatActivity {
                             if (response.isSuccessful()) {
                                 Toast.makeText(AddProductActivity.this, "Berhasil diunggah!", Toast.LENGTH_SHORT).show();
                                 Intent intent = new Intent(AddProductActivity.this,
-                                        com.octania.marketplace.ui.home.HomeActivity.class);
-                                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-                                intent.putExtra("refresh_from_add_product", true);
+                                        com.octania.marketplace.ui.product.MyProductsActivity.class);
+                                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                                 startActivity(intent);
-                                finishAffinity();
+                                finish();
                             } else {
                                 Toast.makeText(AddProductActivity.this, "Gagal mengunggah kode: " + response.code(),
                                         Toast.LENGTH_SHORT).show();
@@ -490,8 +513,8 @@ public class AddProductActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         if (binding != null && binding.bottomNav != null) {
-            binding.bottomNav.setSelectedItemId(R.id.nav_add);
-            com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(binding.bottomNav);
+            binding.bottomNav.bottomNav.setSelectedItemId(R.id.nav_add);
+            com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(binding.bottomNav.bottomNav);
         }
     }
 }

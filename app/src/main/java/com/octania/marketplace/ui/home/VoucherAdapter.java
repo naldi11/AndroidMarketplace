@@ -3,6 +3,7 @@ package com.octania.marketplace.ui.home;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -24,14 +25,17 @@ import java.util.List;
 public class VoucherAdapter extends RecyclerView.Adapter<VoucherAdapter.ViewHolder> {
 
     public static class VoucherModel {
+        public int id;
         public String code;
         public double discount_amount;
         public double min_purchase;
         public String terms;
+        public boolean is_claimed;
     }
 
     public interface OnVoucherClickListener {
         void onVoucherClick(VoucherModel voucher);
+        void onClaimClick(VoucherModel voucher);
     }
 
     private final Context context;
@@ -61,48 +65,66 @@ public class VoucherAdapter extends RecyclerView.Adapter<VoucherAdapter.ViewHold
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         VoucherModel voucher = vouchers.get(position);
 
-        // Show discount type as subtitle
+        // Show discount value on the left side (Shopee style)
         if (voucher.discount_amount > 100) {
-            holder.tvPromoSubtitle.setText("POTONGAN HARGA");
+            String val = (int) (voucher.discount_amount / 1000) + "RB";
+            holder.tvVoucherValue.setText(val);
         } else {
-            holder.tvPromoSubtitle.setText("DISKON PERSEN");
+            holder.tvVoucherValue.setText((int) voucher.discount_amount + "%");
         }
 
-        // Show voucher code directly as title (no "Promo" prefix)
+        // Show voucher code as title
         if (voucher.code != null && !voucher.code.isEmpty()) {
-            holder.tvPromoTitle.setText(voucher.code);
+            holder.tvVoucherName.setText(voucher.code);
         } else {
-            holder.tvPromoTitle.setText("VOUCHER");
+            holder.tvVoucherName.setText("PROMO");
         }
 
-        if (voucher.discount_amount > 100) {
-            holder.tvPromoDiscount.setText("Potongan Rp" + (int) (voucher.discount_amount / 1000) + "Ribu");
-        } else {
-            holder.tvPromoDiscount.setText("Diskon hingga " + (int) voucher.discount_amount + "%");
-        }
+        // Description
+        holder.tvVoucherDescription.setText(voucher.terms != null && !voucher.terms.isEmpty() ? voucher.terms : "Semua Produk");
 
         // Min. belanja
         if (voucher.min_purchase > 0) {
-            holder.tvMinBelanja.setText("Min. Belanja\nRp" + String.format("%,.0f", voucher.min_purchase));
+            holder.tvMinPurchase.setText("Min. Belanja Rp" + String.format("%,.0f", voucher.min_purchase));
         } else {
-            holder.tvMinBelanja.setText("Tanpa min. belanja");
+            holder.tvMinPurchase.setText("Tanpa Min. Belanja");
         }
 
-        // "Pakai" button copies voucher code to clipboard
-        holder.btnShopNow.setOnClickListener(v -> {
+        // Status Klaim UI
+        if (voucher.is_claimed) {
+            holder.btnClaim.setText("Gunakan");
+            holder.btnClaim.setBackgroundResource(R.drawable.bg_btn_pill_grey); // We should create this
+            holder.tvVoucherStatus.setText("Sudah diklaim! Gunakan saat checkout.");
+            holder.tvVoucherStatus.setTextColor(Color.parseColor("#4CAF50")); // Green
+            holder.tvVoucherStatus.setVisibility(View.VISIBLE);
+        } else {
+            holder.btnClaim.setText("Klaim");
+            holder.btnClaim.setBackgroundResource(R.drawable.bg_btn_pill);
+            holder.tvVoucherStatus.setText("Klaim Segera!");
+            holder.tvVoucherStatus.setTextColor(Color.parseColor("#9E9E9E")); // Grey
+            holder.tvVoucherStatus.setVisibility(View.VISIBLE);
+        }
+
+        holder.btnClaim.setOnClickListener(v -> {
+            if (listener != null) {
+                if (voucher.is_claimed) {
+                    listener.onVoucherClick(voucher);
+                } else {
+                    listener.onClaimClick(voucher);
+                }
+            }
+        });
+
+        // Card click copies voucher code to clipboard and shows terms
+        holder.itemView.setOnClickListener(v -> {
             if (voucher.code != null && !voucher.code.isEmpty()) {
                 ClipboardManager clipboard = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
                 ClipData clip = ClipData.newPlainText("Voucher Code", voucher.code);
                 clipboard.setPrimaryClip(clip);
                 ToastManager.showToast(context, "Kode \"" + voucher.code + "\" berhasil disalin!");
             }
+            showTermsDialog(voucher);
         });
-
-        // Card click shows terms if present
-        holder.itemView.setOnClickListener(v -> showTermsDialog(voucher));
-
-        // Info icon shows terms
-        holder.ivInfo.setOnClickListener(v -> showTermsDialog(voucher));
     }
 
     private void showTermsDialog(VoucherModel voucher) {
@@ -132,18 +154,16 @@ public class VoucherAdapter extends RecyclerView.Adapter<VoucherAdapter.ViewHold
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
-        final TextView tvPromoSubtitle, tvPromoTitle, tvPromoDiscount, tvMinBelanja;
-        final ImageView ivInfo;
-        final View btnShopNow;
+        final TextView tvVoucherName, tvVoucherDescription, tvMinPurchase, tvVoucherValue, tvVoucherStatus, btnClaim;
 
         ViewHolder(View itemView) {
             super(itemView);
-            tvPromoSubtitle = itemView.findViewById(R.id.tvPromoSubtitle);
-            tvPromoTitle = itemView.findViewById(R.id.tvPromoTitle);
-            tvPromoDiscount = itemView.findViewById(R.id.tvPromoDiscount);
-            tvMinBelanja = itemView.findViewById(R.id.tvMinBelanja);
-            ivInfo = itemView.findViewById(R.id.ivInfo);
-            btnShopNow = itemView.findViewById(R.id.btnShopNow);
+            tvVoucherName = itemView.findViewById(R.id.tvVoucherName);
+            tvVoucherDescription = itemView.findViewById(R.id.tvVoucherDescription);
+            tvMinPurchase = itemView.findViewById(R.id.tvMinPurchase);
+            tvVoucherValue = itemView.findViewById(R.id.tvVoucherValue);
+            tvVoucherStatus = itemView.findViewById(R.id.tvVoucherStatus);
+            btnClaim = itemView.findViewById(R.id.btnClaim);
         }
     }
 }

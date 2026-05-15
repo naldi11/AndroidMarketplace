@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
@@ -56,6 +57,8 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
     private List<Map<String, Object>> userAddresses = new ArrayList<>();
     private List<Map<String, Object>> paymentMethodsList = new ArrayList<>();
 
+    private int selectedUserVoucherId = -1;
+    private String selectedVoucherName = null;
     private String appliedVoucherCode = null;
     private double discountAmount = 0;
     private double serviceFee = 0;
@@ -129,34 +132,41 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
 
         binding.cardAddress.setOnClickListener(v -> handleAddressClick());
         binding.btnPlaceOrder.setOnClickListener(v -> processCheckout());
-        binding.btnApplyVoucher.setOnClickListener(v -> {
-            appliedVoucherCode = binding.etVoucherCode.getText().toString().trim();
-            calculateTotal();
-        });
+        binding.btnSelectVoucher.setOnClickListener(v -> showVoucherSelection());
 
-        binding.rgShippingOption.setOnCheckedChangeListener((group, checkedId) -> {
-            if (checkedId == binding.rbShippingPickup.getId()) {
-                deliveryType = "pickup";
-            } else {
-                deliveryType = "courier";
-            }
-            calculateTotal();
-        });
+        // Shipping options and payment methods UI removed as requested.
+        // Delivery type and payment method selection handled in background logic.
 
-        binding.spinnerPaymentMethod.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
-                calculateTotal();
-            }
 
-            @Override
-            public void onNothingSelected(android.widget.AdapterView<?> parent) {
-            }
-        });
 
         loadUserAddresses();
         loadCheckoutCartItems();
         loadPaymentMethods();
+        fetchUserProfile();
+    }
+
+    private void fetchUserProfile() {
+        String token = "Bearer " + sessionManager.getToken();
+        apiService.getUserProfile(token).enqueue(new Callback<com.octania.marketplace.data.model.User>() {
+            @Override
+            public void onResponse(Call<com.octania.marketplace.data.model.User> call, Response<com.octania.marketplace.data.model.User> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    sessionManager.saveUser(response.body());
+                    // Refresh current address UI if it's already showing fallback "User"
+                    if (binding.tvRecipientName.getText().toString().equals("User") || 
+                        binding.tvRecipientName.getText().toString().equals("Memuat alamat...")) {
+                        Map<String, String> user = sessionManager.getUserDetails();
+                        binding.tvRecipientName.setText(user.get(SessionManager.KEY_NAME));
+                        binding.tvPhoneNumber.setText(user.get(SessionManager.KEY_PHONE));
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<com.octania.marketplace.data.model.User> call, Throwable t) {
+                // Silent failure, fallback values are already in place
+            }
+        });
     }
 
     @Override
@@ -278,20 +288,17 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
             body.put("buyer_latitude", buyerLat);
             body.put("buyer_longitude", buyerLng);
         }
-        if (appliedVoucherCode != null && !appliedVoucherCode.isEmpty()) {
-            body.put("voucher_code", appliedVoucherCode);
+        if (selectedUserVoucherId != -1) {
+            body.put("user_voucher_id", selectedUserVoucherId);
         }
 
         binding.btnPlaceOrder.setEnabled(false);
         String token = "Bearer " + sessionManager.getToken();
         
-        // Include payment_method_id for adminFee calculation
-        if (!paymentMethodsList.isEmpty() && binding.spinnerPaymentMethod.getSelectedItemPosition() >= 0) {
-            int selectedPos = binding.spinnerPaymentMethod.getSelectedItemPosition();
-            if (selectedPos < paymentMethodsList.size()) {
-                int paymentMethodId = ((Double) paymentMethodsList.get(selectedPos).get("id")).intValue();
-                body.put("payment_method_id", paymentMethodId);
-            }
+        // Include payment_method_id for adminFee calculation (Default to first method)
+        if (!paymentMethodsList.isEmpty()) {
+            int paymentMethodId = ((Double) paymentMethodsList.get(0).get("id")).intValue();
+            body.put("payment_method_id", paymentMethodId);
         }
 
         apiService.previewCheckout(token, body).enqueue(new Callback<ApiResponse<Object>>() {
@@ -318,17 +325,10 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
 
                             binding.tvSubtotal.setText(String.format("Rp %,.0f", subtotal));
                             binding.tvServiceFee.setText(String.format("Rp %,.0f", serviceFee));
-
-                            if (adminFee > 0) {
-                                binding.layoutAdminFee.setVisibility(View.VISIBLE);
-                                binding.tvAdminFee.setText(String.format("Rp %,.0f", adminFee));
-                            } else {
-                                binding.layoutAdminFee.setVisibility(View.GONE);
-                            }
-
-                            binding.layoutShippingCost.setVisibility(View.VISIBLE);
-                            binding.tvShippingCost.setText(String.format("Rp %,.0f", shippingCost));
-
+                            
+                            // UI for Admin Fee and Shipping Cost removed from layout as requested.
+                            // Values are still used for total calculation.
+                            
                             if (discountAmount > 0) {
                                 binding.layoutDiscount.setVisibility(View.VISIBLE);
                                 binding.tvDiscount.setText(String.format("- Rp %,.0f", discountAmount));
@@ -352,13 +352,6 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
                             } else {
                                 binding.layoutDiscount.setVisibility(View.GONE);
                                 binding.tvVoucherTerms.setVisibility(View.GONE);
-                                if (appliedVoucherCode != null && !appliedVoucherCode.isEmpty()) {
-                                    Toast.makeText(CheckoutActivity.this,
-                                            "Voucher tidak valid atau syarat tidak terpenuhi", Toast.LENGTH_SHORT)
-                                            .show();
-                                    appliedVoucherCode = null; // Reset invalid voucher
-                                    binding.etVoucherCode.setText("");
-                                }
                             }
 
                             binding.tvCheckoutTotal.setText(String.format("Rp %,.0f", grandTotal));
@@ -395,21 +388,17 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
                         }.getType();
                         paymentMethodsList = gson.fromJson(json, listType);
 
-                        List<String> names = new ArrayList<>();
-                        for (Map<String, Object> method : paymentMethodsList) {
-                            names.add(method.get("name").toString());
+                        // Background logic: Automatically select the first payment method
+                        if (!paymentMethodsList.isEmpty()) {
+                            calculateTotal();
                         }
-
-                        ArrayAdapter<String> adapter = new ArrayAdapter<>(CheckoutActivity.this,
-                                android.R.layout.simple_spinner_dropdown_item, names);
-                        binding.spinnerPaymentMethod.setAdapter(adapter);
                     }
                 }
             }
 
             @Override
             public void onFailure(Call<ApiResponse<List<Object>>> call, Throwable t) {
-                Toast.makeText(CheckoutActivity.this, "Gagal memuat metode pembayaran", Toast.LENGTH_SHORT).show();
+                // Method removed from UI but logic kept for API
             }
         });
     }
@@ -540,8 +529,21 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
 
     private void applySelectedAddress(Map<String, Object> addr) {
         selectedAddressId = ((Double) addr.get("id")).intValue();
-        String name = addr.containsKey("recipient_name") ? addr.get("recipient_name").toString() : "";
-        String phone = addr.containsKey("phone") ? addr.get("phone").toString() : "";
+        
+        // STRICT FIX: Always take Name and Phone from SessionManager (Account Data)
+        // This ignores whatever name/phone is stored in the specific address database entry.
+        Map<String, String> userDetails = sessionManager.getUserDetails();
+        String name = userDetails.get(SessionManager.KEY_NAME);
+        String phone = userDetails.get(SessionManager.KEY_PHONE);
+        
+        // Fallback only if session is literally empty
+        if (name == null || name.isEmpty() || "null".equals(name)) {
+            name = addr.containsKey("recipient_name") ? String.valueOf(addr.get("recipient_name")) : "User";
+        }
+        if (phone == null || phone.isEmpty() || "null".equals(phone)) {
+            phone = addr.containsKey("phone") ? String.valueOf(addr.get("phone")) : "-";
+        }
+        
         String full = addr.containsKey("full_address") ? addr.get("full_address").toString() : "";
 
         // Extract lat/lng from the selected address
@@ -689,22 +691,16 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
             return;
         }
 
-        if (paymentMethodsList.isEmpty()) {
-            Toast.makeText(this, "Metode pembayaran belum dimuat.", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        int selectedPos = binding.spinnerPaymentMethod.getSelectedItemPosition();
-        if (selectedPos < 0 || selectedPos >= paymentMethodsList.size()) {
-            Toast.makeText(this, "Pilih metode pembayaran terlebih dahulu.", Toast.LENGTH_SHORT).show();
-            return;
+        // Use first payment method if available
+        int paymentMethodId = 1; // Default
+        if (!paymentMethodsList.isEmpty()) {
+            paymentMethodId = ((Double) paymentMethodsList.get(0).get("id")).intValue();
         }
 
         binding.btnPlaceOrder.setEnabled(false);
         binding.btnPlaceOrder.setText("MEMPROSES...");
 
         String token = "Bearer " + sessionManager.getToken();
-        int paymentMethodId = ((Double) paymentMethodsList.get(selectedPos).get("id")).intValue();
 
         Map<String, Object> body = new java.util.HashMap<>();
 
@@ -725,6 +721,9 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
         if (cBuyerLat != null && cBuyerLng != null) {
             body.put("buyer_latitude", cBuyerLat);
             body.put("buyer_longitude", cBuyerLng);
+        }
+        if (selectedUserVoucherId != -1) {
+            body.put("user_voucher_id", selectedUserVoucherId);
         }
         if (appliedVoucherCode != null && !appliedVoucherCode.isEmpty()) {
             body.put("voucher_code", appliedVoucherCode);
@@ -791,5 +790,61 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void showVoucherSelection() {
+        com.google.android.material.bottomsheet.BottomSheetDialog bottomSheet = new com.google.android.material.bottomsheet.BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_voucher_selection, null);
+        bottomSheet.setContentView(view);
+
+        androidx.recyclerview.widget.RecyclerView rvVouchers = view.findViewById(R.id.rvVouchers);
+        android.widget.ProgressBar progressBar = view.findViewById(R.id.progressBar);
+        android.widget.TextView tvNoVoucher = view.findViewById(R.id.tvNoVoucher);
+
+        rvVouchers.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(this));
+        VoucherAdapter adapter = new VoucherAdapter();
+        adapter.setSelectedUserVoucherId(selectedUserVoucherId);
+        rvVouchers.setAdapter(adapter);
+
+        adapter.setOnVoucherClickListener(voucher -> {
+            selectedUserVoucherId = voucher.getUserVoucherId();
+            adapter.setSelectedUserVoucherId(selectedUserVoucherId);
+            appliedVoucherCode = voucher.getCode();
+            selectedVoucherName = voucher.getName();
+            binding.tvSelectedVoucherName.setText(selectedVoucherName);
+            binding.tvSelectedVoucherName.setTextColor(Color.parseColor("#333333"));
+            calculateTotal();
+            bottomSheet.dismiss();
+        });
+
+        String token = "Bearer " + sessionManager.getToken();
+        apiService.getVouchers(token, subtotal).enqueue(new Callback<ApiResponse<List<com.octania.marketplace.data.model.Voucher>>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<List<com.octania.marketplace.data.model.Voucher>>> call, Response<ApiResponse<List<com.octania.marketplace.data.model.Voucher>>> response) {
+                progressBar.setVisibility(View.GONE);
+                if (response.isSuccessful() && response.body() != null) {
+                    List<com.octania.marketplace.data.model.Voucher> vouchers = response.body().getData();
+                    if (vouchers != null && !vouchers.isEmpty()) {
+                        adapter.setVouchers(vouchers);
+                        tvNoVoucher.setVisibility(View.GONE);
+                    } else {
+                        tvNoVoucher.setVisibility(View.VISIBLE);
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<List<com.octania.marketplace.data.model.Voucher>>> call, Throwable t) {
+                progressBar.setVisibility(View.GONE);
+                Toast.makeText(CheckoutActivity.this, "Gagal memuat voucher", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        bottomSheet.show();
+    }
+
+    private String formatRupiah(double amount) {
+        java.text.NumberFormat nf = java.text.NumberFormat.getCurrencyInstance(new java.util.Locale("id", "ID"));
+        return nf.format(amount);
     }
 }

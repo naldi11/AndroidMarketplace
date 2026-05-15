@@ -14,61 +14,50 @@ public class User {
     @SerializedName("avatar")
     private String avatar;
 
+    @SerializedName("shop_name")
+    private String shopName;
+
     private String role;
 
-    public int getId() {
-        return id;
-    }
+    @SerializedName("last_message")
+    private String lastMessage;
 
-    public void setId(int id) {
-        this.id = id;
-    }
+    @SerializedName("last_message_at")
+    private String lastMessageAt;
 
-    public String getName() {
-        return name;
-    }
+    @SerializedName("unread_count")
+    private int unreadCount;
 
-    public void setName(String name) {
-        this.name = name;
-    }
+    public int getId() { return id; }
+    public void setId(int id) { this.id = id; }
 
-    public String getEmail() {
-        return email;
-    }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
 
-    public String getPhone() {
-        return phone;
-    }
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
 
-    public void setPhone(String phone) {
-        this.phone = phone;
-    }
+    public String getProfilePicture() { return profilePicture; }
+    public void setProfilePicture(String profilePicture) { this.profilePicture = profilePicture; }
 
-    public String getProfilePicture() {
-        return profilePicture;
-    }
+    public String getAvatar() { return avatar; }
+    public void setAvatar(String avatar) { this.avatar = avatar; }
 
-    public void setProfilePicture(String profilePicture) {
-        this.profilePicture = profilePicture;
-    }
+    public String getRole() { return role; }
+    public void setRole(String role) { this.role = role; }
 
-    public String getAvatar() {
-        return avatar;
-    }
+    public String getShopName() { return shopName; }
+    public void setShopName(String shopName) { this.shopName = shopName; }
 
-    public void setAvatar(String avatar) {
-        this.avatar = avatar;
-    }
+    public String getLastMessage() { return lastMessage; }
+    public void setLastMessage(String lastMessage) { this.lastMessage = lastMessage; }
 
-    public String getRole() {
-        return role;
-    }
+    public String getLastMessageAt() { return lastMessageAt; }
+    public void setLastMessageAt(String lastMessageAt) { this.lastMessageAt = lastMessageAt; }
 
-    public void setRole(String role) {
-        this.role = role;
-    }
+    public int getUnreadCount() { return unreadCount; }
+    public void setUnreadCount(int unreadCount) { this.unreadCount = unreadCount; }
 }

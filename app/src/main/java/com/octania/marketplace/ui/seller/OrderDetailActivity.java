@@ -54,12 +54,15 @@ public class OrderDetailActivity extends AppCompatActivity {
     private ApiService apiService;
     private int transactionId;
     private boolean isSeller = false;
+    private int currentSellerId = -1;
+    private String currentSellerName = "";
+    private String currentSellerAvatar = "";
 
     // Views
-    private TextView tvShopName, tvOrderId, tvStatus, tvOrderDate, tvRejectionReason;
-    private TextView tvSubtotal, tvDiscount, tvShippingCost, tvServiceFee, tvTotal;
-    private TextView tvPaymentMethod, tvShippingAddress, tvCourier, tvTrackingNumber;
-    private LinearLayout llItems, rowDiscount, rowShippingCost;
+    private TextView tvOrderId, tvStatus, tvOrderDate, tvRejectionReason;
+    private TextView tvSubtotal, tvDiscount, tvServiceFee, tvTotal;
+    private TextView tvShippingAddress, tvTrackingNumber, tvRecipientName, tvRecipientPhone;
+    private LinearLayout llItems, rowDiscount;
     private MaterialButton btnAction, btnCancel;
 
     private MaterialCardView cardProof;
@@ -111,21 +114,18 @@ public class OrderDetailActivity extends AppCompatActivity {
     }
 
     private void bindViews() {
-        tvShopName = findViewById(R.id.tvShopName);
         tvOrderId = findViewById(R.id.tvOrderId);
         tvStatus = findViewById(R.id.tvStatus);
         tvOrderDate = findViewById(R.id.tvOrderDate);
         tvRejectionReason = findViewById(R.id.tvRejectionReason);
         tvSubtotal = findViewById(R.id.tvSubtotal);
         tvDiscount = findViewById(R.id.tvDiscount);
-        tvShippingCost = findViewById(R.id.tvShippingCost);
-        rowShippingCost = findViewById(R.id.rowShippingCost);
         tvServiceFee = findViewById(R.id.tvServiceFee);
         tvTotal = findViewById(R.id.tvTotal);
-        tvPaymentMethod = findViewById(R.id.tvPaymentMethod);
         tvShippingAddress = findViewById(R.id.tvShippingAddress);
-        tvCourier = findViewById(R.id.tvCourier);
         tvTrackingNumber = findViewById(R.id.tvTrackingNumber);
+        tvRecipientName = findViewById(R.id.tvRecipientName);
+        tvRecipientPhone = findViewById(R.id.tvRecipientPhone);
         llItems = findViewById(R.id.llItems);
         rowDiscount = findViewById(R.id.rowDiscount);
         btnAction = findViewById(R.id.btnAction);
@@ -345,12 +345,25 @@ public class OrderDetailActivity extends AppCompatActivity {
         int txId = (int) Double.parseDouble(String.valueOf(order.get("id")));
         selectedTxId = txId;
 
-        if (isSeller) {
-            Map<String, Object> buyer = (Map<String, Object>) order.get("buyer");
-            tvShopName.setText(buyer != null ? String.valueOf(buyer.get("name")) : "Pembeli");
-        } else {
-            Map<String, Object> seller = (Map<String, Object>) order.get("seller");
-            tvShopName.setText(seller != null ? String.valueOf(seller.get("name")) : "Toko Penjual");
+        // Removed shop name/buyer name display from header as requested
+        // Store seller info for chat navigation
+        if (!isSeller) {
+            // Try nested seller object first
+            Map<String, Object> sellerMap = (Map<String, Object>) order.get("seller");
+            if (sellerMap != null && sellerMap.get("id") != null) {
+                try {
+                    currentSellerId = (int) Double.parseDouble(String.valueOf(sellerMap.get("id")));
+                    currentSellerName = safeString(sellerMap.get("name"), "Penjual");
+                    currentSellerAvatar = safeString(sellerMap.get("avatar"), "");
+                } catch (Exception ignored) {}
+            }
+            // Fallback to top-level seller_id field
+            if (currentSellerId == -1 && order.get("seller_id") != null) {
+                try {
+                    currentSellerId = (int) Double.parseDouble(String.valueOf(order.get("seller_id")));
+                } catch (Exception ignored) {}
+            }
+            android.util.Log.d("Dispute", "currentSellerId = " + currentSellerId + ", name = " + currentSellerName);
         }
         tvOrderId.setText("#INV-" + String.format("%05d", txId));
 
@@ -392,7 +405,6 @@ public class OrderDetailActivity extends AppCompatActivity {
 
         // Pricing
         double discount = parseDouble(order.get("discount_total"));
-        double shippingCost = parseDouble(order.get("shipping_cost"));
         double serviceFee = parseDouble(order.get("service_fee"));
         double total = parseDouble(order.get("total_amount"));
 
@@ -407,17 +419,18 @@ public class OrderDetailActivity extends AppCompatActivity {
             rowDiscount.setVisibility(View.GONE);
         }
 
-        if (shippingCost > 0) {
-            rowShippingCost.setVisibility(View.VISIBLE);
-            tvShippingCost.setText(formatRp(shippingCost));
+        // Shipping Cost UI removed from layout as requested.
+        // Payment + shipping info
+        Map<String, Object> buyer = (Map<String, Object>) order.get("buyer");
+        if (buyer != null) {
+            tvRecipientName.setText(String.valueOf(buyer.get("name")));
+            tvRecipientPhone.setText(String.valueOf(buyer.get("phone")));
         } else {
-            rowShippingCost.setVisibility(View.GONE);
+            tvRecipientName.setText(safeString(order.get("buyer_name"), "-"));
+            tvRecipientPhone.setText(safeString(order.get("buyer_phone"), "-"));
         }
 
-        // Payment + shipping info
-        tvPaymentMethod.setText(safeString(order.get("payment_method"), "-"));
         tvShippingAddress.setText(safeString(order.get("shipping_address"), "-"));
-        tvCourier.setText(safeString(order.get("courier"), "-") + " / " + safeString(order.get("delivery_type"), "-"));
         tvTrackingNumber.setText(safeString(order.get("tracking_number"), "-"));
 
         // Proof image
@@ -466,7 +479,11 @@ public class OrderDetailActivity extends AppCompatActivity {
             
             android.util.Log.d("ProofDebug", "proof resolved: " + proof);
             
-            if (proof != null && !proof.isEmpty()) {
+            // Hide proof for MeyPay automation
+            String methodCode = safeString(order.get("payment_method_code"), "");
+            if (methodCode.contains("meypay")) {
+                cardProof.setVisibility(View.GONE);
+            } else if (proof != null && !proof.isEmpty()) {
                 cardProof.setVisibility(View.VISIBLE);
                 if (tvProofTitle != null)
                     tvProofTitle.setText("Bukti Pembayaran");
@@ -475,18 +492,6 @@ public class OrderDetailActivity extends AppCompatActivity {
                 
                 Glide.with(this)
                     .load(finalImgUrl)
-                    .listener(new com.bumptech.glide.request.RequestListener<android.graphics.drawable.Drawable>() {
-                        @Override
-                        public boolean onLoadFailed(@androidx.annotation.Nullable com.bumptech.glide.load.engine.GlideException e, Object model, com.bumptech.glide.request.target.Target<android.graphics.drawable.Drawable> target, boolean isFirstResource) {
-                            android.util.Log.e("ProofDebug", "Glide FAILED for: " + model, e);
-                            return false;
-                        }
-                        @Override
-                        public boolean onResourceReady(android.graphics.drawable.Drawable resource, Object model, com.bumptech.glide.request.target.Target<android.graphics.drawable.Drawable> target, com.bumptech.glide.load.DataSource dataSource, boolean isFirstResource) {
-                            android.util.Log.d("ProofDebug", "Glide SUCCESS for: " + model);
-                            return false;
-                        }
-                    })
                     .into(ivProofImage);
                 ivProofImage.setOnClickListener(v -> showFullScreenImage(finalImgUrl));
             } else {
@@ -616,11 +621,36 @@ public class OrderDetailActivity extends AppCompatActivity {
                         intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
                         filePickerLauncher.launch(Intent.createChooser(intent, "Pilih Foto/Video Bukti Penerimaan"));
                     });
+                    // Tombol Laporkan Masalah
+                    btnCancel.setVisibility(View.VISIBLE);
+                    btnCancel.setText("⚠ Laporkan Masalah");
+                    btnCancel.setBackgroundTintList(
+                            android.content.res.ColorStateList.valueOf(0xFFE53935));
+                    btnCancel.setTextColor(0xFFFFFFFF);
+                    btnCancel.setOnClickListener(v -> showReportDisputeDialog(txId));
                 } else {
                     btnAction.setText("Pesanan Dikirim");
                     btnAction.setEnabled(false);
                     btnAction.setAlpha(0.6f);
                 }
+                break;
+
+            case "disputed":
+                btnCancel.setVisibility(View.GONE);
+                btnAction.setText("⚖ Sedang Dalam Proses Dispute");
+                btnAction.setEnabled(false);
+                btnAction.setAlpha(0.7f);
+                btnAction.setBackgroundTintList(
+                        android.content.res.ColorStateList.valueOf(0xFFFF6F00));
+                break;
+
+            case "refunded":
+                btnCancel.setVisibility(View.GONE);
+                btnAction.setText("✅ Refund Berhasil");
+                btnAction.setEnabled(false);
+                btnAction.setAlpha(0.8f);
+                btnAction.setBackgroundTintList(
+                        android.content.res.ColorStateList.valueOf(0xFF43A047));
                 break;
 
             case "received":
@@ -659,6 +689,120 @@ public class OrderDetailActivity extends AppCompatActivity {
                 btnAction.setAlpha(0.6f);
                 break;
         }
+    }
+
+    private void showReportDisputeDialog(int txId) {
+        android.widget.LinearLayout layout = new android.widget.LinearLayout(this);
+        layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        layout.setPadding(48, 24, 48, 8);
+
+        android.widget.TextView tvLabel = new android.widget.TextView(this);
+        tvLabel.setText("Alasan Laporan:");
+        tvLabel.setPadding(0, 0, 0, 8);
+        layout.addView(tvLabel);
+
+        String[] reasons = {"Barang tidak sesuai deskripsi", "Barang rusak/cacat", "Barang tidak sampai", "Barang palsu", "Lainnya"};
+        android.widget.Spinner spinnerReason = new android.widget.Spinner(this);
+        android.widget.ArrayAdapter<String> adapter = new android.widget.ArrayAdapter<>(
+                this, android.R.layout.simple_spinner_dropdown_item, reasons);
+        spinnerReason.setAdapter(adapter);
+        layout.addView(spinnerReason);
+
+        android.widget.EditText etDesc = new android.widget.EditText(this);
+        etDesc.setHint("Deskripsikan masalah Anda...");
+        etDesc.setMinLines(3);
+        etDesc.setPadding(0, 16, 0, 0);
+        layout.addView(etDesc);
+
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("⚠ Laporkan Masalah")
+                .setMessage("Laporan akan dikirimkan ke penjual dan dipantau oleh admin.\nAnda bisa melanjutkan diskusi di room chat.")
+                .setView(layout)
+                .setPositiveButton("Kirim Laporan", (d, w) -> {
+                    String reason = reasons[spinnerReason.getSelectedItemPosition()];
+                    String desc   = etDesc.getText().toString().trim();
+                    submitDispute(txId, reason, desc);
+                })
+                .setNegativeButton("Batal", null)
+                .show();
+    }
+
+    private void submitDispute(int txId, String reason, String description) {
+        String token = "Bearer " + sessionManager.getToken();
+        btnCancel.setEnabled(false);
+        btnCancel.setText("Mengirim...");
+
+        apiService.openDispute(token, txId, reason, description)
+                .enqueue(new Callback<ApiResponse<Object>>() {
+                    @Override
+                    public void onResponse(Call<ApiResponse<Object>> call,
+                                           Response<ApiResponse<Object>> response) {
+                        if (response.isSuccessful() && response.body() != null
+                                && "success".equals(response.body().getStatus())) {
+                            ToastManager.showToast(OrderDetailActivity.this,
+                                    "Laporan berhasil dikirim! Admin akan meninjau kasus ini.");
+                            // Reload detail first, then open chat after detail loaded
+                            loadDetailThenChat();
+                        } else {
+                            btnCancel.setEnabled(true);
+                            btnCancel.setText("⚠ Laporkan Masalah");
+                            String msg = "Gagal mengirim laporan";
+                            try {
+                                if (response.errorBody() != null)
+                                    msg = response.errorBody().string();
+                            } catch (Exception ignored) {}
+                            ToastManager.showToast(OrderDetailActivity.this, msg);
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<ApiResponse<Object>> call, Throwable t) {
+                        btnCancel.setEnabled(true);
+                        btnCancel.setText("⚠ Laporkan Masalah");
+                        ToastManager.showToast(OrderDetailActivity.this, "Jaringan error: " + t.getMessage());
+                    }
+                });
+    }
+
+    private void loadDetailThenChat() {
+        String token = "Bearer " + sessionManager.getToken();
+        apiService.getTransactionDetail(token, transactionId)
+                .enqueue(new Callback<ApiResponse<Object>>() {
+                    @Override
+                    public void onResponse(Call<ApiResponse<Object>> call,
+                                           Response<ApiResponse<Object>> response) {
+                        if (response.isSuccessful() && response.body() != null) {
+                            Object data = response.body().getData();
+                            if (data instanceof java.util.Map) {
+                                try {
+                                    renderDetail((java.util.Map<String, Object>) data);
+                                } catch (Exception ignored) {}
+                            }
+                        }
+                        // Open chat regardless — seller info should now be set
+                        openChatWithSeller();
+                    }
+
+                    @Override
+                    public void onFailure(Call<ApiResponse<Object>> call, Throwable t) {
+                        // Still try to open chat with cached seller info
+                        openChatWithSeller();
+                    }
+                });
+    }
+
+    private void openChatWithSeller() {
+        if (currentSellerId == -1) {
+            // Fallback: buka daftar percakapan jika seller_id tidak tersedia
+            startActivity(new Intent(this, com.octania.marketplace.ui.chat.ConversationsActivity.class));
+            return;
+        }
+        // Langsung buka ChatActivity dengan seller terkait
+        Intent chatIntent = new Intent(this, com.octania.marketplace.ui.chat.ChatActivity.class);
+        chatIntent.putExtra("user_id", currentSellerId);
+        chatIntent.putExtra("user_name", currentSellerName.isEmpty() ? "Penjual" : currentSellerName);
+        chatIntent.putExtra("user_avatar", currentSellerAvatar);
+        startActivity(chatIntent);
     }
 
     private void uploadProof(int txId, Uri uri) {

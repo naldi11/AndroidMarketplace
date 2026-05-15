@@ -11,6 +11,8 @@ public class SessionManager {
     private static final String KEY_IS_LOGGED_IN = "isLoggedIn";
     private static final String KEY_USER_ID = "userId";
     private static final String KEY_ACTIVE_ROLE = "activeRole";
+    private static final String KEY_WISHLIST_COUNT = "wishlistCount";
+    private static final String KEY_CART_COUNT = "cartCount";
 
     public static final String KEY_NAME = "userName";
     public static final String KEY_EMAIL = "userEmail";
@@ -70,5 +72,20 @@ public class SessionManager {
         user.put(KEY_EMAIL, pref.getString(KEY_EMAIL, null));
         user.put(KEY_PHONE, pref.getString(KEY_PHONE, null));
         return user;
+    }
+
+    /** Simpan badge count agar bisa dibaca dari semua activity */
+    public void saveBadgeCounts(int wishlistCount, int cartCount) {
+        editor.putInt(KEY_WISHLIST_COUNT, wishlistCount);
+        editor.putInt(KEY_CART_COUNT, cartCount);
+        editor.apply();
+    }
+
+    public int getWishlistCount() {
+        return pref.getInt(KEY_WISHLIST_COUNT, 0);
+    }
+
+    public int getCartCount() {
+        return pref.getInt(KEY_CART_COUNT, 0);
     }
 }

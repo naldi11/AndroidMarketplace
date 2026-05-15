@@ -6,16 +6,34 @@ import java.util.List;
 public class Transaction {
     private int id;
 
+    @SerializedName("transaction_number")
+    private String transactionNumber;
+
     @SerializedName("buyer_id")
     private int buyerId;
 
     @SerializedName("total_amount")
     private double totalAmount;
 
+    @SerializedName("seller_amount")
+    private double sellerAmount;
+
     private String status;
+
+    @SerializedName("payment_method")
+    private String paymentMethod;
 
     @SerializedName("payment_method_code")
     private String paymentMethodCode;
+
+    @SerializedName("meypay_va")
+    private String meypayVa;
+
+    @SerializedName("meypay_qr_content")
+    private String meypayQrContent;
+
+    @SerializedName("expires_at")
+    private String expiresAt;
 
     @SerializedName("shipping_address_id")
     private Integer shippingAddressId;
@@ -26,77 +44,58 @@ public class Transaction {
     @SerializedName("created_at")
     private String createdAt;
 
+    @SerializedName("paid_at")
+    private String paidAt;
+
     private List<TransactionDetail> items;
 
-    public int getId() {
-        return id;
-    }
+    // ===== Getters & Setters =====
 
-    public void setId(int id) {
-        this.id = id;
-    }
+    public int getId() { return id; }
+    public void setId(int id) { this.id = id; }
 
-    public int getBuyerId() {
-        return buyerId;
-    }
+    public String getTransactionNumber() { return transactionNumber; }
+    public void setTransactionNumber(String transactionNumber) { this.transactionNumber = transactionNumber; }
 
-    public void setBuyerId(int buyerId) {
-        this.buyerId = buyerId;
-    }
+    public int getBuyerId() { return buyerId; }
+    public void setBuyerId(int buyerId) { this.buyerId = buyerId; }
 
-    public double getTotalAmount() {
-        return totalAmount;
-    }
+    public double getTotalAmount() { return totalAmount; }
+    public void setTotalAmount(double totalAmount) { this.totalAmount = totalAmount; }
 
-    public void setTotalAmount(double totalAmount) {
-        this.totalAmount = totalAmount;
-    }
+    public double getSellerAmount() { return sellerAmount; }
+    public void setSellerAmount(double sellerAmount) { this.sellerAmount = sellerAmount; }
 
-    public String getStatus() {
-        return status;
-    }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
+    public String getPaymentMethod() { return paymentMethod; }
+    public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
 
-    public String getPaymentMethodCode() {
-        return paymentMethodCode;
-    }
+    public String getPaymentMethodCode() { return paymentMethodCode; }
+    public void setPaymentMethodCode(String paymentMethodCode) { this.paymentMethodCode = paymentMethodCode; }
 
-    public void setPaymentMethodCode(String paymentMethodCode) {
-        this.paymentMethodCode = paymentMethodCode;
-    }
+    public String getMeypayVa() { return meypayVa; }
+    public void setMeypayVa(String meypayVa) { this.meypayVa = meypayVa; }
 
-    public Integer getShippingAddressId() {
-        return shippingAddressId;
-    }
+    public String getMeypayQrContent() { return meypayQrContent; }
+    public void setMeypayQrContent(String meypayQrContent) { this.meypayQrContent = meypayQrContent; }
 
-    public void setShippingAddressId(Integer shippingAddressId) {
-        this.shippingAddressId = shippingAddressId;
-    }
+    public String getExpiresAt() { return expiresAt; }
+    public void setExpiresAt(String expiresAt) { this.expiresAt = expiresAt; }
 
-    public String getPaymentProof() {
-        return paymentProof;
-    }
+    public Integer getShippingAddressId() { return shippingAddressId; }
+    public void setShippingAddressId(Integer shippingAddressId) { this.shippingAddressId = shippingAddressId; }
 
-    public void setPaymentProof(String paymentProof) {
-        this.paymentProof = paymentProof;
-    }
+    public String getPaymentProof() { return paymentProof; }
+    public void setPaymentProof(String paymentProof) { this.paymentProof = paymentProof; }
 
-    public String getCreatedAt() {
-        return createdAt;
-    }
+    public String getCreatedAt() { return createdAt; }
+    public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
 
-    public void setCreatedAt(String createdAt) {
-        this.createdAt = createdAt;
-    }
+    public String getPaidAt() { return paidAt; }
+    public void setPaidAt(String paidAt) { this.paidAt = paidAt; }
 
-    public List<TransactionDetail> getItems() {
-        return items;
-    }
-
-    public void setItems(List<TransactionDetail> items) {
-        this.items = items;
-    }
+    public List<TransactionDetail> getItems() { return items; }
+    public void setItems(List<TransactionDetail> items) { this.items = items; }
 }

@@ -68,6 +68,14 @@ dependencies {
     // Swipe Refresh
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
 
+    // CameraX (untuk Scan QR)
+    implementation("androidx.camera:camera-camera2:1.3.4")
+    implementation("androidx.camera:camera-lifecycle:1.3.4")
+    implementation("androidx.camera:camera-view:1.3.4")
+
+    // ML Kit Barcode Scanning (untuk decode QR/QRIS dari kamera atau galeri)
+    implementation("com.google.mlkit:barcode-scanning:17.3.0")
+
     // OSM Map
     implementation("org.osmdroid:osmdroid-android:6.1.18")
 
@@ -84,6 +92,9 @@ dependencies {
 
     // Charts for Seller Dashboard
     implementation("com.github.PhilJay:MPAndroidChart:3.1.0")
+
+    // QR Code Generation
+    implementation("com.google.zxing:core:3.5.3")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

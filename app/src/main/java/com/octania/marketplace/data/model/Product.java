@@ -34,7 +34,7 @@ public class Product {
     @SerializedName("discount_percent")
     private Double discountPercent;
 
-    @SerializedName("distance_km")
+    @SerializedName("distance")
     private Double distanceKm;
 
     @SerializedName("avg_rating")

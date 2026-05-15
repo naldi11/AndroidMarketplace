@@ -4,20 +4,20 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#F5F5F5">
+    android:background="@color/bg_light">
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:elevation="0dp"
-        android:background="@android:color/white">
+        app:elevation="0dp">
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            app:title="Upload Bukti Pembayaran"
-            app:titleTextColor="#333333"/>
+            android:background="@color/primary_orange"
+            app:title="Pembayaran MeyPay"
+            app:titleTextColor="@color/white" />
     </com.google.android.material.appbar.AppBarLayout>
 
     <ScrollView
@@ -30,49 +30,206 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="20dp">
+            android:padding="16dp">
 
-            <TextView
-                android:id="@+id/tvInstruction"
+            <!-- Order Info Card -->
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Silakan transfer..."
-                android:textSize="14sp"
-                android:textColor="#333333"
-                android:layout_marginBottom="24dp" />
-
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardProofPreview"
-                android:layout_width="match_parent"
-                android:layout_height="250dp"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="2dp"
                 android:layout_marginBottom="16dp">
 
-                <ImageView
-                    android:id="@+id/ivProofPreview"
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:scaleType="centerCrop"
-                    android:background="#E0E0E0" />
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Total Tagihan"
+                        android:textColor="@color/grey_600"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/tvAmount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Rp 0"
+                        android:textColor="@color/primary_orange"
+                        android:textSize="24sp"
+                        android:textStyle="bold"
+                        android:layout_marginTop="4dp" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/grey_divider"
+                        android:layout_marginVertical="12dp" />
+
+                    <TextView
+                        android:id="@+id/tvOrderNumber"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="No. Pesanan: #0"
+                        android:textColor="@color/text_dark"
+                        android:textSize="12sp" />
+                </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnSelectProof"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                android:layout_width="match_parent"
-                android:layout_height="54dp"
-                android:text="Pilih Gambar (.jpg / .png)"
-                android:textColor="@color/primary_orange"
-                app:strokeColor="@color/primary_orange" />
+            <!-- Virtual Account Section -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="MeyPay Virtual Account (VA)"
+                android:textStyle="bold"
+                android:textColor="@color/text_dark"
+                android:layout_marginBottom="8dp" />
 
-            <!-- RecyclerView for multiple proof images -->
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvProofImages"
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardVa"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:orientation="horizontal" />
+                android:layout_marginTop="8dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="#FFF8E1"
+                app:strokeWidth="1dp"
+                app:strokeColor="#FFE0B2"
+                app:rippleColor="#1FE65100"
+                android:clickable="true"
+                android:focusable="true">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:id="@+id/tvMeyPayVA"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="880000000000"
+                        android:textColor="#E65100"
+                        android:textSize="28sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.1" />
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginTop="4dp">
+                        <ImageView
+                            android:layout_width="14dp"
+                            android:layout_height="14dp"
+                            android:src="@drawable/ic_discount"
+                            app:tint="#E65100"
+                            android:layout_marginEnd="4dp" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Klik untuk salin nomor VA"
+                            android:textSize="12sp"
+                            android:textColor="#E65100" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Countdown Timer -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="#FEEBEE">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="12dp"
+                    android:gravity="center"
+                    android:orientation="horizontal">
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_notification"
+                        app:tint="#D32F2F"
+                        android:layout_marginEnd="8dp" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Batas waktu pembayaran: "
+                        android:textSize="12sp"
+                        android:textColor="#D32F2F" />
+                    <TextView
+                        android:id="@+id/tvCountdown"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="23:59:59"
+                        android:textStyle="bold"
+                        android:textSize="12sp"
+                        android:textColor="#D32F2F" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- QRIS Section -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Scan QRIS MeyPay"
+                android:textStyle="bold"
+                android:layout_marginTop="20dp"
+                android:layout_marginStart="4dp" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="16dp">
+
+                    <ImageView
+                        android:id="@+id/ivQrCode"
+                        android:layout_width="220dp"
+                        android:layout_height="220dp"
+                        android:scaleType="fitCenter"
+                        android:src="@drawable/meypay_logo" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnDownloadQr"
+                        style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Unduh QRIS"
+                        app:icon="@drawable/ic_download"
+                        android:textColor="@color/primary_orange"
+                        app:iconTint="@color/primary_orange" />
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Setelah melakukan pembayaran, status akan otomatis terupdate secara realtime."
+                android:textSize="12sp"
+                android:gravity="center"
+                android:textColor="@color/grey_600"
+                android:layout_marginBottom="24dp" />
 
         </LinearLayout>
     </ScrollView>
@@ -81,28 +238,34 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:background="#FFFFFF"
-        android:elevation="8dp"
-        android:padding="16dp">
+        android:padding="16dp"
+        android:background="@color/white"
+        android:elevation="8dp">
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnSubmitProof"
-            android:layout_width="match_parent"
-            android:layout_height="54dp"
-            android:text="Kirim Bukti Pembayaran"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            app:cornerRadius="8dp"
-            android:enabled="false" />
+        android:id="@+id/btnPayWithWallet"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="BAYAR DENGAN SALDO MEYPAY"
+        android:textAllCaps="true"
+        android:textStyle="bold"
+        app:cornerRadius="12dp"
+        app:backgroundTint="@color/primary_orange"
+        android:layout_marginBottom="12dp" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnPayLater"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="Bayar Nanti"
-            android:textColor="#757575" />
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnCheckStatus"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:text="CEK STATUS PEMBAYARAN"
+        android:textAllCaps="true"
+        android:textStyle="bold"
+        app:cornerRadius="12dp"
+        app:strokeColor="@color/primary_orange"
+        app:strokeWidth="1dp"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:textColor="@color/primary_orange" />
+
     </LinearLayout>
 
 </LinearLayout>

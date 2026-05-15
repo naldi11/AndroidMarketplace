@@ -74,10 +74,15 @@ public class ProfileActivity extends AppCompatActivity {
     private LinearLayout menuMyProducts, menuSellerBalance;
 
     // Settings menus
-    private LinearLayout menuAddress, menuChangePassword;
+    private LinearLayout menuAddress, menuChangePassword, menuMyVouchers;
+
+    // MeyPay Wallet
+    private View cardMeyPay;
+    private TextView tvWalletBalance;
+    private View btnTopUp, btnScanMeyPay, btnWalletHistory;
 
     // Logout
-    private MaterialButton btnLogout;
+    private LinearLayout btnLogout;
 
     private final ActivityResultLauncher<Intent> imagePickerLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -107,10 +112,21 @@ public class ProfileActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        BottomNavigationView bottomNav = findViewById(R.id.bottomNav);
+        String role = sessionManager.getActiveRole();
+        BottomNavigationView bottomNav;
+        if ("seller".equals(role)) {
+            View container = findViewById(R.id.includeBottomNavSeller);
+            bottomNav = container.findViewById(R.id.bottomNav);
+        } else {
+            View container = findViewById(R.id.includeBottomNavBuyer);
+            bottomNav = container.findViewById(R.id.bottomNav);
+        }
+
         if (bottomNav != null) {
             bottomNav.setSelectedItemId(R.id.nav_profile);
             com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(bottomNav);
+            // Tampilkan badge wishlist/cart dari cache, lalu refresh dari API
+            com.octania.marketplace.utils.BadgeUtils.fetchAndApply(this, sessionManager, bottomNav);
         }
         
         applyRoleBasedUI();
@@ -123,14 +139,22 @@ public class ProfileActivity extends AppCompatActivity {
             // Hide specific seller features in profile if logged in as buyer
             View cardTokoSaya = findViewById(R.id.cardTokoSaya);
             if (cardTokoSaya != null) cardTokoSaya.setVisibility(View.GONE);
+
+            // Show buyer-only menus
+            if (menuAddress != null) menuAddress.setVisibility(View.VISIBLE);
+            if (menuMyVouchers != null) menuMyVouchers.setVisibility(View.VISIBLE);
         } else {
             // Logged in as seller
             View cardTokoSaya = findViewById(R.id.cardTokoSaya);
             if (cardTokoSaya != null) cardTokoSaya.setVisibility(View.VISIBLE);
-            
-            // Hide the order shortcut area if you want to cleanly separate it
+
+            // Hide the order shortcut area for seller
             View cardPesananSaya = findViewById(R.id.cardPesananSaya);
             if (cardPesananSaya != null) cardPesananSaya.setVisibility(View.GONE);
+
+            // Hide buyer-only menus from seller
+            if (menuAddress != null) menuAddress.setVisibility(View.GONE);
+            if (menuMyVouchers != null) menuMyVouchers.setVisibility(View.GONE);
         }
     }
 
@@ -155,6 +179,13 @@ public class ProfileActivity extends AppCompatActivity {
 
         menuAddress = findViewById(R.id.menuAddress);
         menuChangePassword = findViewById(R.id.menuChangePassword);
+        menuMyVouchers = findViewById(R.id.menuMyVouchers);
+
+        cardMeyPay = findViewById(R.id.cardMeyPay);
+        tvWalletBalance = findViewById(R.id.tvWalletBalance);
+        btnTopUp = findViewById(R.id.btnTopUp);
+        btnScanMeyPay = findViewById(R.id.btnScanMeyPay);
+        btnWalletHistory = findViewById(R.id.btnWalletHistory);
 
         btnLogout = findViewById(R.id.btnLogout);
     }
@@ -163,6 +194,11 @@ public class ProfileActivity extends AppCompatActivity {
 
     private void setupClickListeners() {
         btnEditProfile.setOnClickListener(v -> showEditProfileDialog());
+        
+        if (btnLogout != null) {
+            btnLogout.setOnClickListener(v -> confirmLogout());
+        }
+        // ... rest of listeners
 
         btnChangeAvatar.setOnClickListener(v -> {
             Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
@@ -183,62 +219,118 @@ public class ProfileActivity extends AppCompatActivity {
         // Settings
         menuAddress.setOnClickListener(v -> startActivity(new Intent(this, ManageAddressActivity.class)));
         menuChangePassword.setOnClickListener(v -> showChangePasswordDialog());
+        menuMyVouchers.setOnClickListener(v -> startActivity(new Intent(this, MyVoucherActivity.class)));
 
         // Logout
         btnLogout.setOnClickListener(v -> confirmLogout());
+
+        // MeyPay Wallet
+        cardMeyPay.setOnClickListener(v -> {
+            startActivity(new Intent(this, com.octania.marketplace.ui.payment.WalletActivity.class));
+        });
+
+        if (btnTopUp != null) {
+            btnTopUp.setOnClickListener(v -> {
+                startActivity(new Intent(this, com.octania.marketplace.ui.payment.WalletActivity.class));
+            });
+        }
+
+        if (btnScanMeyPay != null) {
+            btnScanMeyPay.setOnClickListener(v -> {
+                startActivity(new Intent(this, com.octania.marketplace.ui.payment.ScanQrActivity.class));
+            });
+        }
+
+        if (btnWalletHistory != null) {
+            btnWalletHistory.setOnClickListener(v -> {
+                startActivity(new Intent(this, com.octania.marketplace.ui.payment.WalletActivity.class));
+            });
+        }
+
+        // The FAB Scan is now inside the Buyer Include, so we find it there
+        View buyerNav = findViewById(R.id.includeBottomNavBuyer);
+        if (buyerNav != null) {
+            View fab = buyerNav.findViewById(R.id.fabScan);
+            if (fab != null) {
+                fab.setOnClickListener(v -> {
+                    com.octania.marketplace.utils.NavigationUtils.showScanDialog(this);
+                });
+            }
+        }
     }
 
     // ===== Bottom Navigation =====
 
     private void setupBottomNav() {
-        BottomNavigationView bottomNav = findViewById(R.id.bottomNav);
-        if (bottomNav == null) return;
-
         String role = sessionManager.getActiveRole();
-        bottomNav.getMenu().clear();
+        View sellerNavContainer = findViewById(R.id.includeBottomNavSeller);
+        View buyerNavContainer = findViewById(R.id.includeBottomNavBuyer);
+
         if ("seller".equals(role)) {
-            bottomNav.inflateMenu(R.menu.bottom_nav_seller);
+            sellerNavContainer.setVisibility(View.VISIBLE);
+            buyerNavContainer.setVisibility(View.GONE);
+            setupSellerNav(sellerNavContainer);
         } else {
-            bottomNav.inflateMenu(R.menu.bottom_nav_buyer);
+            sellerNavContainer.setVisibility(View.GONE);
+            buyerNavContainer.setVisibility(View.VISIBLE);
+            setupBuyerNav(buyerNavContainer);
         }
+    }
+
+    private void setupSellerNav(View container) {
+        BottomNavigationView bottomNav = container.findViewById(R.id.bottomNav);
+        if (bottomNav == null) return;
 
         bottomNav.setSelectedItemId(R.id.nav_profile);
         com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(bottomNav);
 
         bottomNav.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
-            if (id == R.id.nav_profile) {
+            if (id == R.id.nav_profile) return true;
+
+            if (id == R.id.nav_home) {
+                startActivity(new Intent(this, com.octania.marketplace.ui.seller.SellerDashboardActivity.class));
+                finish();
+                return true;
+            } else if (id == R.id.nav_add) {
+                startActivity(new Intent(this, com.octania.marketplace.ui.product.MyProductsActivity.class));
+                finish();
+                return true;
+            } else if (id == R.id.nav_orders) {
+                startActivity(new Intent(this, SellerOrdersActivity.class));
+                finish();
                 return true;
             }
+            return false;
+        });
+    }
 
-            if ("seller".equals(role)) {
-                if (id == R.id.nav_home) {
-                    startActivity(new Intent(this, com.octania.marketplace.ui.seller.SellerDashboardActivity.class));
-                    finish();
-                    return true;
-                } else if (id == R.id.nav_add) {
-                    startActivity(new Intent(this, com.octania.marketplace.ui.product.MyProductsActivity.class));
-                    finish();
-                    return true;
-                } else if (id == R.id.nav_orders) {
-                    startActivity(new Intent(this, SellerOrdersActivity.class));
-                    finish();
-                    return true;
-                }
-            } else {
-                if (id == R.id.nav_home) {
-                    startActivity(new Intent(this, com.octania.marketplace.ui.home.HomeActivity.class));
-                    finish();
-                    return true;
-                } else if (id == R.id.nav_orders) {
-                    startActivity(new Intent(this, com.octania.marketplace.ui.seller.MyOrdersActivity.class));
-                    finish();
-                    return true;
-                } else if (id == R.id.nav_wishlist) {
-                    startActivity(new Intent(this, WishlistActivity.class));
-                    finish();
-                    return true;
-                }
+    private void setupBuyerNav(View container) {
+        BottomNavigationView bottomNav = container.findViewById(R.id.bottomNav);
+        if (bottomNav == null) return;
+
+        bottomNav.setSelectedItemId(R.id.nav_profile);
+        com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(bottomNav);
+
+        bottomNav.setOnItemSelectedListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.nav_profile) return true;
+
+            if (id == R.id.nav_home) {
+                startActivity(new Intent(this, com.octania.marketplace.ui.home.HomeActivity.class));
+                finish();
+                return true;
+            } else if (id == R.id.nav_scan) {
+                com.octania.marketplace.utils.NavigationUtils.showScanDialog(this);
+                return false;
+            } else if (id == R.id.nav_orders) {
+                startActivity(new Intent(this, com.octania.marketplace.ui.seller.MyOrdersActivity.class));
+                finish();
+                return true;
+            } else if (id == R.id.nav_wishlist) {
+                startActivity(new Intent(this, WishlistActivity.class));
+                finish();
+                return true;
             }
             return false;
         });
@@ -261,6 +353,7 @@ public class ProfileActivity extends AppCompatActivity {
             public void onResponse(Call<User> call, Response<User> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     renderUserProfile(response.body());
+                    fetchWalletInfo();
                 }
             }
 
@@ -268,6 +361,26 @@ public class ProfileActivity extends AppCompatActivity {
             public void onFailure(Call<User> call, Throwable t) {
                 Toast.makeText(ProfileActivity.this, "Gagal memuat profil", Toast.LENGTH_SHORT).show();
             }
+        });
+    }
+
+    private void fetchWalletInfo() {
+        if (!sessionManager.isLoggedIn()) return;
+        String token = "Bearer " + sessionManager.getToken();
+        apiService.getWalletInfo(token).enqueue(new Callback<ApiResponse<Object>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<Object>> call, Response<ApiResponse<Object>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    java.util.Map<String, Object> data = (java.util.Map<String, Object>) response.body().getData();
+                    if (data != null && data.containsKey("balance")) {
+                        double balance = ((Number) data.get("balance")).doubleValue();
+                        tvWalletBalance.setText(String.format("Rp %,.0f", balance));
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<Object>> call, Throwable t) {}
         });
     }
 
@@ -477,7 +590,7 @@ public class ProfileActivity extends AppCompatActivity {
     // ===== Logout =====
 
     private void confirmLogout() {
-        new AlertDialog.Builder(this)
+        new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("Keluar")
                 .setMessage("Yakin ingin keluar dari akun?")
                 .setPositiveButton("Keluar", (d, w) -> {

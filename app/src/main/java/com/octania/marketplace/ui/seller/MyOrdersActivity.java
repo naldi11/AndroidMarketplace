@@ -102,19 +102,23 @@ public class MyOrdersActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (binding != null && binding.bottomNav != null) {
+        if (binding != null && binding.bottomNavInclude != null && binding.bottomNavInclude.bottomNav != null) {
             // Just refresh visual effect, selection is handled in setupBottomNav
-            com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(binding.bottomNav);
+            com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(binding.bottomNavInclude.bottomNav);
+            com.octania.marketplace.utils.BadgeUtils.fetchAndApply(
+                    this, sessionManager, binding.bottomNavInclude.bottomNav);
         }
         fetchOrders();
     }
 
     private void setupBottomNav() {
         // Set visual state first without listener to avoid trigger on launch
-        binding.bottomNav.setSelectedItemId(R.id.nav_orders);
-        com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(binding.bottomNav);
+        binding.bottomNavInclude.bottomNav.setSelectedItemId(R.id.nav_orders);
+        com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(binding.bottomNavInclude.bottomNav);
+        
+        binding.bottomNavInclude.fabScan.setOnClickListener(v -> showScanDialog());
 
-        binding.bottomNav.setOnItemSelectedListener(item -> {
+        binding.bottomNavInclude.bottomNav.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
             if (id == R.id.nav_home) {
                 startActivity(new Intent(this, com.octania.marketplace.ui.home.HomeActivity.class));
@@ -133,6 +137,10 @@ public class MyOrdersActivity extends AppCompatActivity {
             }
             return false;
         });
+    }
+
+    private void showScanDialog() {
+        com.octania.marketplace.utils.NavigationUtils.showScanDialog(this);
     }
 
     private void setupTabs() {
@@ -590,8 +598,25 @@ public class MyOrdersActivity extends AppCompatActivity {
             if ("waiting_payment".equals(status)) {
                 h.llActionButtons.setVisibility(View.VISIBLE);
                 h.btnPrimary.setVisibility(View.VISIBLE);
-                h.btnPrimary.setText("Upload Bukti");
-                h.btnPrimary.setOnClickListener(v -> openFilePickerForProof(txId));
+
+                // Metode otomatis (MeyPay Wallet) -> Bayar Sekarang
+                // Metode manual (transfer bank, dll) -> Upload Bukti
+                boolean isAutoPayment = paymentMethod != null &&
+                        (paymentMethod.toLowerCase().contains("meypay") ||
+                         paymentMethod.toLowerCase().contains("wallet"));
+
+                if (isAutoPayment) {
+                    h.btnPrimary.setText("Bayar Sekarang");
+                    h.btnPrimary.setOnClickListener(v -> {
+                        Intent intent = new Intent(MyOrdersActivity.this,
+                                com.octania.marketplace.ui.payment.PaymentActivity.class);
+                        intent.putExtra("transaction_id", txId);
+                        startActivity(intent);
+                    });
+                } else {
+                    h.btnPrimary.setText("Upload Bukti");
+                    h.btnPrimary.setOnClickListener(v -> openFilePickerForProof(txId));
+                }
             } else if ("shipped".equals(status)) {
                 h.llActionButtons.setVisibility(View.VISIBLE);
                 h.btnPrimary.setVisibility(View.VISIBLE);
@@ -604,6 +629,25 @@ public class MyOrdersActivity extends AppCompatActivity {
                 h.btnSecondary.setVisibility(View.VISIBLE);
                 h.btnSecondary.setText("Hapus Pesanan");
                 h.btnSecondary.setOnClickListener(v -> deleteOrder(txId));
+            }
+
+            // Tampilkan tombol Lihat Invoice untuk pesanan yang sudah terbayar
+            boolean isPaid = status != null && (
+                    status.equals("paid_verified") || status.equals("processing") ||
+                    status.equals("shipped") || status.equals("received") || status.equals("completed"));
+            if (isPaid) {
+                h.llActionButtons.setVisibility(View.VISIBLE);
+                h.btnSecondary.setVisibility(View.VISIBLE);
+                h.btnSecondary.setText("📄 Lihat Invoice");
+                String txNumber = order.containsKey("transaction_number")
+                        ? String.valueOf(order.get("transaction_number")) : "";
+                h.btnSecondary.setOnClickListener(v -> {
+                    Intent intent = new Intent(MyOrdersActivity.this,
+                            com.octania.marketplace.ui.payment.InvoiceActivity.class);
+                    intent.putExtra("transaction_id", txId);
+                    intent.putExtra("transaction_number", txNumber);
+                    startActivity(intent);
+                });
             }
         }
 

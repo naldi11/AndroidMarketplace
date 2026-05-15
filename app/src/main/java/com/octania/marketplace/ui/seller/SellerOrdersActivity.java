@@ -94,9 +94,9 @@ public class SellerOrdersActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         if (binding != null && binding.bottomNav != null) {
-            binding.bottomNav.post(() -> {
-                binding.bottomNav.setSelectedItemId(R.id.nav_orders);
-                com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(binding.bottomNav);
+            binding.bottomNav.bottomNav.post(() -> {
+                binding.bottomNav.bottomNav.setSelectedItemId(R.id.nav_orders);
+                com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(binding.bottomNav.bottomNav);
             });
         }
         fetchOrders(); // Call fetchOrders here
@@ -127,11 +127,11 @@ public class SellerOrdersActivity extends AppCompatActivity {
     }
 
     private void setupBottomNav() {
-        binding.bottomNav.post(() -> {
-            binding.bottomNav.setSelectedItemId(R.id.nav_orders);
-            com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(binding.bottomNav);
+        binding.bottomNav.bottomNav.post(() -> {
+            binding.bottomNav.bottomNav.setSelectedItemId(R.id.nav_orders);
+            com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(binding.bottomNav.bottomNav);
         });
-        binding.bottomNav.setOnItemSelectedListener(item -> {
+        binding.bottomNav.bottomNav.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
             if (id == R.id.nav_home) {
                 startActivity(new Intent(this, com.octania.marketplace.ui.seller.SellerDashboardActivity.class));

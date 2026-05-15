@@ -63,9 +63,12 @@ public class WishlistActivity extends AppCompatActivity {
     }
 
     private void setupBottomNav() {
-        binding.bottomNav.setSelectedItemId(R.id.nav_wishlist);
-        com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(binding.bottomNav);
-        binding.bottomNav.setOnItemSelectedListener(item -> {
+        binding.bottomNavInclude.bottomNav.setSelectedItemId(R.id.nav_wishlist);
+        com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(binding.bottomNavInclude.bottomNav);
+        
+        binding.bottomNavInclude.fabScan.setOnClickListener(v -> showScanDialog());
+
+        binding.bottomNavInclude.bottomNav.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
             if (id == R.id.nav_home) {
                 startActivity(new Intent(this, com.octania.marketplace.ui.home.HomeActivity.class));
@@ -86,11 +89,17 @@ public class WishlistActivity extends AppCompatActivity {
         });
     }
 
+    private void showScanDialog() {
+        com.octania.marketplace.utils.NavigationUtils.showScanDialog(this);
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
-        binding.bottomNav.setSelectedItemId(R.id.nav_wishlist);
-        com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(binding.bottomNav);
+        binding.bottomNavInclude.bottomNav.setSelectedItemId(R.id.nav_wishlist);
+        com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(binding.bottomNavInclude.bottomNav);
+        com.octania.marketplace.utils.BadgeUtils.fetchAndApply(
+                this, sessionManager, binding.bottomNavInclude.bottomNav);
         fetchWishlists();
     }
 
@@ -125,6 +134,10 @@ public class WishlistActivity extends AppCompatActivity {
                             @Override
                             public void onSuccess(String message) {
                                 fetchWishlists();
+                                // Update badge langsung setelah hapus/tambah wishlist
+                                com.octania.marketplace.utils.BadgeUtils.fetchAndApply(
+                                        WishlistActivity.this, sessionManager,
+                                        binding.bottomNavInclude.bottomNav);
                             }
 
                             @Override

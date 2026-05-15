@@ -64,18 +64,7 @@
             android:paddingBottom="16dp" />
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="12dp">
-        <com.google.android.material.bottomnavigation.BottomNavigationView
-            android:id="@+id/bottomNav"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@drawable/bg_bottom_nav"
-            android:elevation="12dp"
-            app:itemIconTint="@color/nav_item_color"
-            app:itemTextColor="@color/nav_item_color"
-            app:menu="@menu/bottom_nav_seller" />
-    </FrameLayout>
+    <include
+        android:id="@+id/bottomNav"
+        layout="@layout/layout_bottom_nav_seller" />
 </LinearLayout>

@@ -45,7 +45,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:text="Bergabung dengan Market Mahasiswa"
+                android:text="Bergabung dengan Market Barang Bekas"
                 android:textColor="@color/grey_icon"
                 android:textSize="14sp"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -162,59 +162,7 @@
                             android:buttonTint="@color/primary_orange"/>
                     </RadioGroup>
 
-                    <LinearLayout
-                        android:id="@+id/llSellerFields"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:visibility="gone">
 
-                        <com.google.android.material.textfield.TextInputLayout
-                            android:id="@+id/tilShopName"
-                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="16dp"
-                            android:hint="Nama Toko"
-                            app:startIconDrawable="@drawable/ic_baseline_store_24"
-                            app:startIconTint="@color/primary_orange"
-                            app:boxStrokeColor="@color/primary_orange"
-                            app:hintTextColor="@color/primary_orange">
-
-                            <com.google.android.material.textfield.TextInputEditText
-                                android:id="@+id/etShopName"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:inputType="text"
-                                android:textSize="14sp" />
-                        </com.google.android.material.textfield.TextInputLayout>
-
-                        <com.google.android.material.textfield.TextInputLayout
-                            android:id="@+id/tilAddress"
-                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="16dp"
-                            android:hint="Alamat Toko"
-                            app:startIconDrawable="@drawable/ic_location"
-                            app:startIconTint="@color/primary_orange"
-                            app:endIconMode="custom"
-                            app:endIconDrawable="@drawable/ic_location"
-                            app:endIconTint="@color/primary_orange"
-                            app:boxStrokeColor="@color/primary_orange"
-                            app:hintTextColor="@color/primary_orange">
-
-                            <com.google.android.material.textfield.TextInputEditText
-                                android:id="@+id/etAddress"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:inputType="textMultiLine"
-                                android:minLines="3"
-                                android:gravity="top|start"
-                                android:textSize="14sp" />
-                        </com.google.android.material.textfield.TextInputLayout>
-
-                    </LinearLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/tilPassword"

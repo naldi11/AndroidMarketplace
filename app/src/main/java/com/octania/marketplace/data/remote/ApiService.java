@@ -42,7 +42,8 @@ public interface ApiService {
                         @Field("shop_name") String shopName,
                         @Field("address") String address,
                         @Field("latitude") Double latitude,
-                        @Field("longitude") Double longitude);
+                        @Field("longitude") Double longitude,
+                        @Field("device_id") String deviceId);
 
         @POST("logout")
         Call<ApiResponse<Void>> logout(
@@ -129,6 +130,16 @@ public interface ApiService {
         Call<ApiResponse<Object>> confirmCheckout(
                         @Header("Authorization") String token,
                         @Body java.util.Map<String, Object> body);
+
+        @GET("transactions/check-status/{id}")
+        Call<ApiResponse<Object>> checkPaymentStatus(
+                        @Header("Authorization") String token,
+                        @retrofit2.http.Path("id") int transactionId);
+
+        @POST("transactions/pay-wallet/{id}")
+        Call<ApiResponse<Object>> payWithWallet(
+                        @Header("Authorization") String token,
+                        @retrofit2.http.Path("id") int transactionId);
 
         @GET("payment-methods")
         Call<ApiResponse<List<Object>>> getPaymentMethods();
@@ -292,6 +303,34 @@ public interface ApiService {
         @POST("transactions/{id}/cancel")
         Call<ApiResponse<Object>> cancelOrder(@Header("Authorization") String token, @retrofit2.http.Path("id") int id);
 
+        // ===== Dispute / Laporan Masalah =====
+        @retrofit2.http.FormUrlEncoded
+        @POST("disputes/{transactionId}")
+        Call<ApiResponse<Object>> openDispute(
+                @Header("Authorization") String token,
+                @retrofit2.http.Path("transactionId") int transactionId,
+                @retrofit2.http.Field("reason") String reason,
+                @retrofit2.http.Field("description") String description);
+
+        @GET("disputes/{transactionId}")
+        Call<ApiResponse<Object>> getDispute(
+                @Header("Authorization") String token,
+                @retrofit2.http.Path("transactionId") int transactionId);
+
+        @retrofit2.http.FormUrlEncoded
+        @POST("disputes/{id}/buyer-ship-back")
+        Call<ApiResponse<Object>> buyerShipBack(
+                @Header("Authorization") String token,
+                @retrofit2.http.Path("id") int disputeId,
+                @retrofit2.http.Field("return_courier") String courier,
+                @retrofit2.http.Field("return_tracking_number") String trackingNumber);
+
+        @POST("disputes/{id}/seller-confirm-return")
+        Call<ApiResponse<Object>> sellerConfirmReturn(
+                @Header("Authorization") String token,
+                @retrofit2.http.Path("id") int disputeId);
+
+
         @FormUrlEncoded
         @POST("transactions/{id}/status")
         Call<ApiResponse<Object>> updateOrderStatus(
@@ -311,15 +350,30 @@ public interface ApiService {
 
         // ===== Vouchers =====
         @GET("vouchers")
-        Call<ApiResponse<Object>> getVouchers(
+        Call<ApiResponse<java.util.List<com.octania.marketplace.data.model.Voucher>>> getVouchers(
+                        @Header("Authorization") String token,
+                        @Query("total_amount") double totalAmount);
+
+        @GET("vouchers/public")
+        Call<ApiResponse<java.util.List<com.octania.marketplace.data.model.Voucher>>> getPublicVouchers(
                         @Header("Authorization") String token);
+
+        @GET("vouchers")
+        Call<ApiResponse<java.util.List<com.octania.marketplace.data.model.Voucher>>> getVouchersByCategory(
+                        @Header("Authorization") String token,
+                        @Query("category_id") int categoryId);
 
         @FormUrlEncoded
         @POST("vouchers/check")
-        Call<ApiResponse<Object>> checkVoucher(
+        Call<ApiResponse<com.octania.marketplace.data.model.Voucher>> checkVoucher(
                         @Header("Authorization") String token,
-                        @Field("code") String code,
+                        @Field("user_voucher_id") int userVoucherId,
                         @Field("total_amount") double totalAmount);
+
+        @POST("vouchers/{id}/claim")
+        Call<ApiResponse<Void>> claimVoucher(
+                        @Header("Authorization") String token,
+                        @retrofit2.http.Path("id") int voucherId);
 
         // ===== Settings =====
         @GET("settings")
@@ -354,4 +408,51 @@ Call<ApiResponse<Object>> submitReport(
         @Field("type") String type,
         @Field("reason") String reason,
         @Field("description") String description);
+
+// ===== MeyPay Wallet =====
+@GET("wallet/info")
+Call<ApiResponse<Object>> getWalletInfo(@Header("Authorization") String token);
+
+@GET("wallet/transactions")
+Call<ApiResponse<Object>> getWalletTransactions(@Header("Authorization") String token);
+
+@FormUrlEncoded
+@POST("wallet/topup")
+Call<ApiResponse<Object>> topupWallet(
+        @Header("Authorization") String token,
+        @Field("amount") double amount);
+
+@FormUrlEncoded
+@POST("wallet/verify-payment")
+Call<ApiResponse<Object>> verifyPaymentCode(
+        @Header("Authorization") String token,
+        @Field("code") String code);
+
+@FormUrlEncoded
+@POST("wallet/verify-pin")
+Call<ApiResponse<Object>> verifyWalletPin(
+        @Header("Authorization") String token,
+        @Field("pin") String pin);
+
+// ===== Chat System =====
+@GET("chat/conversations")
+Call<ApiResponse<java.util.List<com.octania.marketplace.data.model.User>>> getChatConversations(
+        @Header("Authorization") String token);
+
+@GET("chat/messages/{otherUserId}")
+Call<ApiResponse<java.util.List<com.octania.marketplace.data.model.Message>>> getChatMessages(
+        @Header("Authorization") String token,
+        @retrofit2.http.Path("otherUserId") int otherUserId);
+
+@Multipart
+@POST("chat/send")
+Call<ApiResponse<com.octania.marketplace.data.model.Message>> sendMessage(
+        @Header("Authorization") String token,
+        @Part("receiver_id") RequestBody receiverId,
+        @Part("message") RequestBody message,
+        @Part MultipartBody.Part attachment);
+
+@GET("chat/poll")
+Call<ApiResponse<java.util.List<com.octania.marketplace.data.model.Message>>> pollMessages(
+        @Header("Authorization") String token);
 }

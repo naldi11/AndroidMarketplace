@@ -5,400 +5,124 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <LinearLayout
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical"
         android:background="@color/bg_light">
 
         <!-- ========== HEADER ========== -->
         <LinearLayout
+            android:id="@+id/headerLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingHorizontal="16dp"
-            android:paddingTop="12dp"
-            android:paddingBottom="8dp"
-            android:background="@color/bg_light">
+            android:orientation="horizontal"
+            android:paddingHorizontal="12dp"
+            android:paddingTop="16dp"
+            android:paddingBottom="20dp"
+            android:background="@drawable/bg_header_orange"
+            android:gravity="center_vertical"
+            android:elevation="8dp">
 
-            <!-- Top Row: App Name + Icons -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="12dp">
+            <ImageView
+                android:id="@+id/btnFilter"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:padding="4dp"
+                android:src="@drawable/ic_location"
+                app:tint="@color/white" />
 
-                <!-- App Logo -->
-                <FrameLayout
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:background="@drawable/bg_category_icon_selected">
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/ic_cart"
-                        app:tint="@color/white" />
-                </FrameLayout>
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:text="MarketMahasiswa"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/text_dark" />
-
-                <!-- Filter Button -->
-                <ImageView
-                    android:id="@+id/btnFilter"
-                    android:layout_width="28dp"
-                    android:layout_height="28dp"
-                    android:layout_marginEnd="12dp"
-                    android:src="@drawable/ic_location"
-                    android:background="?selectableItemBackgroundBorderless"
-                    android:clickable="true"
-                    android:focusable="true"
-                    app:tint="@color/primary_orange" />
-
-                <FrameLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content">
-
-                    <ImageView
-                        android:id="@+id/btnNavCart"
-                        android:layout_width="28dp"
-                        android:layout_height="28dp"
-                        android:src="@drawable/ic_cart"
-                        android:background="?selectableItemBackgroundBorderless"
-                        android:clickable="true"
-                        android:focusable="true"
-                        app:tint="@color/grey_icon" />
-
-                    <!-- Badge for Cart -->
-                    <TextView
-                        android:id="@+id/tvCartBadge"
-                        android:layout_width="16dp"
-                        android:layout_height="16dp"
-                        android:layout_gravity="top|end"
-                        android:layout_marginTop="-2dp"
-                        android:layout_marginEnd="-2dp"
-                        android:background="@drawable/bg_badge_red"
-                        android:gravity="center"
-                        android:text="0"
-                        android:textColor="@color/white"
-                        android:textSize="9sp"
-                        android:textStyle="bold"
-                        android:visibility="gone" />
-                </FrameLayout>
-            </LinearLayout>
-
-            <!-- Floating Search Bar -->
             <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="6dp"
-                app:strokeWidth="0dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingHorizontal="12dp">
-
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:src="@android:drawable/ic_menu_search"
-                        app:tint="@color/grey_inactive" />
-
-                    <EditText
-                        android:id="@+id/etSearch"
-                        android:layout_width="0dp"
-                        android:layout_weight="1"
-                        android:layout_height="match_parent"
-                        android:layout_marginStart="8dp"
-                        android:background="@android:color/transparent"
-                        android:hint="Cari produk, merek, atau promo..."
-                        android:inputType="text"
-                        android:imeOptions="actionSearch"
-                        android:maxLines="1"
-                        android:textSize="14sp"
-                        android:textColor="@color/text_dark"
-                        android:textColorHint="@color/grey_inactive" />
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="42dp"
+                android:layout_marginHorizontal="10dp"
+                app:cardCornerRadius="10dp"
+                app:cardElevation="0dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="center_vertical" android:paddingHorizontal="12dp">
+                    <ImageView android:layout_width="18dp" android:layout_height="18dp" android:src="@android:drawable/ic_menu_search" app:tint="@color/grey_inactive" />
+                    <EditText android:id="@+id/etSearch" android:layout_width="match_parent" android:layout_height="match_parent" android:layout_marginStart="8dp" android:background="@android:color/transparent" android:hint="Cari produk di Market Barang Bekas..." android:textSize="14sp" android:inputType="text" android:imeOptions="actionSearch" android:maxLines="1" android:singleLine="true" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
+
+            <FrameLayout android:layout_width="wrap_content" android:layout_height="wrap_content">
+                <ImageView android:id="@+id/btnNavCart" android:layout_width="28dp" android:layout_height="28dp" android:src="@drawable/ic_cart" app:tint="@color/white" />
+                <TextView android:id="@+id/tvCartBadge" android:layout_width="18dp" android:layout_height="18dp" android:layout_gravity="top|end" android:layout_marginTop="-5dp" android:layout_marginEnd="-5dp" android:background="@drawable/bg_badge_red" android:gravity="center" android:text="0" android:textColor="@color/white" android:textSize="10sp" android:textStyle="bold" android:visibility="gone" />
+            </FrameLayout>
+
+            <ImageView android:id="@+id/btnNavChat" android:layout_width="28dp" android:layout_height="28dp" android:layout_marginStart="14dp" android:src="@drawable/ic_chat" app:tint="@color/white" />
         </LinearLayout>
 
-        <!-- ========== SCROLLABLE CONTENT WITH OVERLAY ========== -->
-        <FrameLayout
+        <!-- ========== SCROLL CONTENT (WITH REFRESH) ========== -->
+        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+            android:id="@+id/swipeRefresh"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1">
-            
-            <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-                android:id="@+id/swipeRefresh"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent">
+            android:layout_height="match_parent"
+            android:layout_below="@id/headerLayout"
+            android:layout_above="@id/bottomNavInclude">
 
-                <androidx.core.widget.NestedScrollView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:fillViewport="true">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical">
-
-                        <!-- Horizontal Vouchers (Promo) -->
-                        <androidx.recyclerview.widget.RecyclerView
-                            android:id="@+id/rvVouchers"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:paddingHorizontal="12dp"
-                            android:paddingTop="12dp"
-                            android:clipToPadding="false"
-                            android:overScrollMode="never" />
-
-                        <!-- Horizontal Categories -->
-                        <androidx.recyclerview.widget.RecyclerView
-                            android:id="@+id/rvCategories"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:paddingHorizontal="12dp"
-                            android:paddingVertical="12dp"
-                            android:clipToPadding="false"
-                            android:overScrollMode="never" />
-
-                        <!-- Product Grid -->
-                        <androidx.recyclerview.widget.RecyclerView
-                                android:id="@+id/rvProducts"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:nestedScrollingEnabled="false"
-                                android:paddingHorizontal="8dp"
-                                android:paddingBottom="100dp"
-                                android:clipToPadding="false"/>
-                    </LinearLayout>
-                </androidx.core.widget.NestedScrollView>
-            </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
-
-            <!-- ========== SEARCH HISTORY OVERLAY ========== -->
-            <ScrollView
-                android:id="@+id/layoutSearchHistory"
+            <androidx.core.widget.NestedScrollView
+                android:id="@+id/mainScrollView"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="#FAFAFA"
-                android:visibility="gone"
-                android:clickable="true"
-                android:focusable="true">
-                
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
+                android:fillViewport="true">
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
                     
-                    <RelativeLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp">
-                        
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_centerVertical="true"
-                            android:text="Riwayat Pencarian"
-                            android:textStyle="bold"
-                            android:textSize="14sp"
-                            android:textColor="#333333"/>
-                            
-                        <androidx.cardview.widget.CardView
-                            android:id="@+id/btnClearHistory"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_alignParentEnd="true"
-                            android:layout_centerVertical="true"
-                            app:cardElevation="0dp"
-                            app:cardBackgroundColor="@android:color/transparent"
-                            android:clickable="true"
-                            android:focusable="true">
-                            
-                            <LinearLayout
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:orientation="horizontal"
-                                android:gravity="center"
-                                android:padding="4dp">
-                                
-                                <ImageView
-                                    android:layout_width="16dp"
-                                    android:layout_height="16dp"
-                                    android:src="@android:drawable/ic_menu_delete"
-                                    app:tint="#888888"/>
-                                    
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginStart="4dp"
-                                    android:text="Hapus"
-                                    android:textSize="12sp"
-                                    android:textColor="#888888"/>
-                            </LinearLayout>
-                        </androidx.cardview.widget.CardView>
-                    </RelativeLayout>
-
-                    <TextView
-                        android:id="@+id/tvNoHistory"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Belum ada riwayat"
-                        android:textColor="#AAAAAA"
-                        android:textSize="13sp"
-                        android:gravity="center"
-                        android:paddingTop="16dp"
-                        android:paddingBottom="16dp"
-                        android:visibility="gone"/>
-
-                    <com.google.android.material.chip.ChipGroup
-                        android:id="@+id/chipGroupHistory"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        app:chipSpacingVertical="4dp"
-                        app:chipSpacingHorizontal="8dp" />
+                    <TextView android:id="@+id/tvVoucherLabel" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Promo Spesial Untukmu" android:textSize="16sp" android:textStyle="bold" android:paddingHorizontal="16dp" android:paddingTop="16dp" android:visibility="gone" />
+                    <androidx.recyclerview.widget.RecyclerView android:id="@+id/rvVouchers" android:layout_width="match_parent" android:layout_height="wrap_content" android:nestedScrollingEnabled="false" />
+                    
+                    <androidx.recyclerview.widget.RecyclerView android:id="@+id/rvCategories" android:layout_width="match_parent" android:layout_height="wrap_content" android:nestedScrollingEnabled="false" android:paddingVertical="12dp" />
+                    
+                    <androidx.recyclerview.widget.RecyclerView android:id="@+id/rvProducts" android:layout_width="match_parent" android:layout_height="wrap_content" android:nestedScrollingEnabled="false" />
+                    
+                    <View android:layout_width="match_parent" android:layout_height="100dp" />
                 </LinearLayout>
-            </ScrollView>
-        </FrameLayout>
+            </androidx.core.widget.NestedScrollView>
+        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
-        <!-- ========== BOTTOM NAVIGATION BAR ========== -->
+        <!-- ========== SEARCH HISTORY OVERLAY ========== -->
+        <ScrollView
+            android:id="@+id/layoutSearchHistory"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_below="@id/headerLayout"
+            android:background="@color/white"
+            android:visibility="gone"
+            android:elevation="20dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="20dp">
+                <TextView android:id="@+id/btnClearHistory" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="end" android:text="Hapus" android:textColor="@color/primary_orange" />
+                <TextView android:id="@+id/tvNoHistory" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Belum ada riwayat" android:gravity="center" android:padding="20dp" android:visibility="gone" />
+                <com.google.android.material.chip.ChipGroup android:id="@+id/chipGroupHistory" android:layout_width="match_parent" android:layout_height="wrap_content" app:chipSpacing="8dp" />
+            </LinearLayout>
+        </ScrollView>
+
+        <!-- ========== UNIFIED BUYER BOTTOM NAV ========== -->
         <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp">
-
-        <com.google.android.material.bottomnavigation.BottomNavigationView
-            android:id="@+id/bottomNav"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@drawable/bg_bottom_nav"
-            android:elevation="12dp"
-            app:itemIconTint="@color/nav_item_color"
-            app:itemTextColor="@color/nav_item_color"
-            app:itemRippleColor="@color/orange_10"
-            app:menu="@menu/bottom_nav_buyer" />
-
-        <!-- Badge for Wishlist -->
-        <TextView
-            android:id="@+id/tvWishlistBadge"
-            android:layout_width="16dp"
-            android:layout_height="16dp"
-            android:layout_gravity="top|center_horizontal"
-            android:layout_marginTop="6dp"
-            android:layout_marginStart="64dp"
-            android:background="@drawable/bg_badge_red"
-            android:gravity="center"
-            android:text="0"
-            android:textColor="@color/white"
-            android:textSize="9sp"
-            android:textStyle="bold"
-            android:visibility="gone"
-            android:elevation="15dp" />
+            android:layout_height="100dp"
+            android:layout_alignParentBottom="true"
+            android:clipChildren="false">
+            <include
+                android:id="@+id/bottomNavInclude"
+                layout="@layout/layout_bottom_nav_buyer"
+                android:layout_width="match_parent"
+                android:layout_height="100dp" />
+            <TextView android:id="@+id/tvWishlistBadge" android:layout_width="16dp" android:layout_height="16dp" android:layout_gravity="bottom|end" android:layout_marginBottom="58dp" android:layout_marginEnd="85dp" android:background="@drawable/bg_badge_red" android:gravity="center" android:text="0" android:textColor="@color/white" android:textSize="9sp" android:textStyle="bold" android:visibility="gone" android:elevation="18dp" />
         </FrameLayout>
-    </LinearLayout>
 
-    <!-- RIGHT DRAWER (Slide from Right Filter) -->
+    </RelativeLayout>
+
+    <!-- RIGHT DRAWER (FILTER) -->
     <LinearLayout
         android:id="@+id/rightDrawer"
-        android:layout_width="280dp"
+        android:layout_width="300dp"
         android:layout_height="match_parent"
         android:layout_gravity="end"
         android:background="@color/white"
-        android:orientation="vertical"
-        android:clickable="true"
-        android:focusable="true">
-
-        <!-- Drawer Header -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="20dp"
-            android:background="@color/orange_5">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Filter Pencarian"
-                android:textSize="20sp"
-                android:textStyle="bold"
-                android:textColor="@color/primary_orange" />
-            
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Sesuaikan produk sesuai keinginanmu"
-                android:textSize="12sp"
-                android:textColor="@color/grey_text"
-                android:layout_marginTop="4dp" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="20dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="16dp">
-
-                <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:src="@drawable/ic_location"
-                    app:tint="@color/text_dark" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:text="Jarak Terdekat (KM)"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/text_dark" />
-            </LinearLayout>
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvDistanceFilter"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:overScrollMode="never" />
-        </LinearLayout>
-
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnApplyFilter"
-            android:layout_width="match_parent"
-            android:layout_height="54dp"
-            android:text="Terapkan Filter"
-            android:textAllCaps="false"
-            android:textStyle="bold"
-            app:cornerRadius="12dp"
-            app:backgroundTint="@color/primary_orange" />
-
+        android:orientation="vertical">
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Filter Jarak" android:textSize="18sp" android:padding="20dp" android:textStyle="bold" android:background="@color/orange_5" android:textColor="@color/primary_orange" />
+        <androidx.recyclerview.widget.RecyclerView android:id="@+id/rvDistanceFilter" android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="10dp" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/btnApplyFilter" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_margin="20dp" android:text="Terapkan Filter" app:cornerRadius="12dp" />
     </LinearLayout>
 
 </androidx.drawerlayout.widget.DrawerLayout>

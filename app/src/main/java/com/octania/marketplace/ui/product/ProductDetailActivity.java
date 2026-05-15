@@ -76,6 +76,35 @@ public class ProductDetailActivity extends AppCompatActivity {
             startActivity(intent);
         });
         binding.btnWishlistAction.setOnClickListener(v -> toggleWishlist());
+        
+        binding.btnChatSeller.setOnClickListener(v -> {
+            if (!sessionManager.isLoggedIn()) {
+                Toast.makeText(this, "Silakan login terlebih dahulu", Toast.LENGTH_SHORT).show();
+                startActivity(new Intent(this, LoginActivity.class));
+                return;
+            }
+            // Start Chat with seller
+            apiService.getProductDetail(sessionManager.isLoggedIn() ? "Bearer " + sessionManager.getToken() : null, productId).enqueue(new Callback<ApiResponse<Product>>() {
+                @Override
+                public void onResponse(Call<ApiResponse<Product>> call, Response<ApiResponse<Product>> response) {
+                    if (response.isSuccessful() && response.body() != null && response.body().getData() != null) {
+                        Product p = response.body().getData();
+                        if (p.getUser() != null) {
+                            Intent intent = new Intent(ProductDetailActivity.this, com.octania.marketplace.ui.chat.ChatActivity.class);
+                            intent.putExtra("user_id", p.getUser().getId());
+                            intent.putExtra("user_name", p.getUser().getName());
+                            intent.putExtra("user_avatar", p.getUser().getAvatar());
+                            startActivity(intent);
+                        } else {
+                            Toast.makeText(ProductDetailActivity.this, "Data penjual tidak ditemukan", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<ApiResponse<Product>> call, Throwable t) {}
+            });
+        });
 
         fetchProductDetail();
     }

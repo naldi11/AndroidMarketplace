@@ -31,17 +31,7 @@ public class RegisterActivity extends AppCompatActivity {
     private Double lat = null;
     private Double lng = null;
 
-    private final ActivityResultLauncher<Intent> mapLauncher = registerForActivityResult(
-            new ActivityResultContracts.StartActivityForResult(),
-            result -> {
-                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                    String address = result.getData().getStringExtra("picked_address");
-                    lat = result.getData().getDoubleExtra("lat", 0);
-                    lng = result.getData().getDoubleExtra("lng", 0);
-                    binding.etAddress.setText(address);
-                }
-            }
-    );
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,11 +45,7 @@ public class RegisterActivity extends AppCompatActivity {
         // Setup toolbar navigation
         binding.toolbar.setNavigationOnClickListener(v -> finish());
 
-        // Setup Map Picker Icon
-        binding.tilAddress.setEndIconOnClickListener(v -> {
-            Intent intent = new Intent(this, MapPickerActivity.class);
-            mapLauncher.launch(intent);
-        });
+
 
         // Setup password strength indicator
         binding.etPassword.addTextChangedListener(new android.text.TextWatcher() {
@@ -81,10 +67,7 @@ public class RegisterActivity extends AppCompatActivity {
 
         binding.tvTermsLink.setOnClickListener(v -> showTermsDialog());
 
-        binding.rgRole.setOnCheckedChangeListener((group, checkedId) -> {
-            boolean isSeller = checkedId == com.octania.marketplace.R.id.rbSeller;
-            binding.llSellerFields.setVisibility(isSeller ? View.VISIBLE : View.GONE);
-        });
+
     }
 
     private void updatePasswordStrength(String password) {
@@ -176,8 +159,8 @@ public class RegisterActivity extends AppCompatActivity {
 
         int selectedRoleId = binding.rgRole.getCheckedRadioButtonId();
         String role = selectedRoleId == com.octania.marketplace.R.id.rbSeller ? "seller" : "buyer";
-        String shopName = binding.etShopName.getText().toString().trim();
-        String address = binding.etAddress.getText().toString().trim();
+        String shopName = "";
+        String address = "";
 
         if (name.isEmpty() || email.isEmpty() || phone.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
             Toast.makeText(this, "Semua field wajib diisi", Toast.LENGTH_SHORT).show();
@@ -185,13 +168,8 @@ public class RegisterActivity extends AppCompatActivity {
         }
 
         if ("seller".equals(role)) {
-            if (shopName.isEmpty() || address.isEmpty()) {
-                Toast.makeText(this, "Nama dan Alamat Toko wajib diisi untuk Penjual!", Toast.LENGTH_SHORT).show();
-                return;
-            }
+            // No shop specific fields anymore, will use name on backend
         } else {
-            shopName = null;
-            address = null;
             lat = null;
             lng = null;
         }
@@ -208,7 +186,9 @@ public class RegisterActivity extends AppCompatActivity {
 
         setLoading(true);
 
-        apiService.register(name, email, phone, password, confirmPassword, role, shopName, address, lat, lng).enqueue(new Callback<AuthResponse>() {
+        String deviceId = android.provider.Settings.Secure.getString(getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
+
+        apiService.register(name, email, phone, password, confirmPassword, role, shopName, address, lat, lng, deviceId).enqueue(new Callback<AuthResponse>() {
             @Override
             public void onResponse(Call<AuthResponse> call, Response<AuthResponse> response) {
                 setLoading(false);
@@ -223,6 +203,7 @@ public class RegisterActivity extends AppCompatActivity {
                         }
 
                         sessionManager.createLoginSession(token, userId, responseRole);
+                        sessionManager.saveUser(res.getData());
 
                         Toast.makeText(RegisterActivity.this, "Pendaftaran berhasil!", Toast.LENGTH_SHORT).show();
 
@@ -274,8 +255,7 @@ public class RegisterActivity extends AppCompatActivity {
         binding.etName.setEnabled(!isLoading);
         binding.etEmail.setEnabled(!isLoading);
         binding.etPhone.setEnabled(!isLoading);
-        binding.etShopName.setEnabled(!isLoading);
-        binding.etAddress.setEnabled(!isLoading);
+
         for(int i = 0; i < binding.rgRole.getChildCount(); i++){
             binding.rgRole.getChildAt(i).setEnabled(!isLoading);
         }

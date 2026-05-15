@@ -35,40 +35,38 @@ public class DistanceFilterAdapter extends RecyclerView.Adapter<DistanceFilterAd
     }
 
     private void setupItems() {
-        items.add(new DistanceModel("Semua", null));
-        items.add(new DistanceModel("1 KM", 1));
-        items.add(new DistanceModel("2 KM", 2));
-        items.add(new DistanceModel("3 KM", 3));
-        items.add(new DistanceModel("4 KM", 4));
-        items.add(new DistanceModel("5 KM", 5));
-        items.add(new DistanceModel("5++ KM", 100)); // Assuming 100 is "unlimited" or large enough
+        items.add(new DistanceModel("0", "Semua", null));
+        items.add(new DistanceModel("1", "1 KM", 1));
+        items.add(new DistanceModel("2", "2 KM", 2));
+        items.add(new DistanceModel("3", "3 KM", 3));
+        items.add(new DistanceModel("4", "4 KM", 4));
+        items.add(new DistanceModel("5", "5 KM", 5));
+        items.add(new DistanceModel("5+", "5++ KM", 100));
     }
 
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(context).inflate(R.layout.item_category, parent, false);
+        View view = LayoutInflater.from(context).inflate(R.layout.item_distance_filter, parent, false);
         return new ViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         DistanceModel item = items.get(position);
-        holder.tvName.setText(item.label);
+        holder.tvLabel.setText(item.iconLabel);
+        holder.tvUnit.setText(item.label);
         
         boolean isSelected = position == selectedPosition;
 
-        holder.ivIcon.setImageResource(R.drawable.ic_location);
-        holder.ivIcon.setImageTintList(isSelected
-                ? android.content.res.ColorStateList.valueOf(ContextCompat.getColor(context, R.color.white))
-                : android.content.res.ColorStateList.valueOf(ContextCompat.getColor(context, R.color.grey_icon)));
-
         if (isSelected) {
             holder.flIcon.setBackgroundResource(R.drawable.bg_category_icon_selected);
-            holder.tvName.setTextColor(ContextCompat.getColor(context, R.color.text_dark));
+            holder.tvLabel.setTextColor(ContextCompat.getColor(context, R.color.white));
+            holder.tvUnit.setTextColor(ContextCompat.getColor(context, R.color.primary_orange));
         } else {
             holder.flIcon.setBackgroundResource(R.drawable.bg_category_icon);
-            holder.tvName.setTextColor(ContextCompat.getColor(context, R.color.grey_inactive));
+            holder.tvLabel.setTextColor(ContextCompat.getColor(context, R.color.primary_orange));
+            holder.tvUnit.setTextColor(ContextCompat.getColor(context, R.color.grey_inactive));
         }
 
         holder.itemView.setOnClickListener(v -> {
@@ -76,6 +74,7 @@ public class DistanceFilterAdapter extends RecyclerView.Adapter<DistanceFilterAd
             selectedPosition = holder.getAdapterPosition();
             notifyItemChanged(prev);
             notifyItemChanged(selectedPosition);
+            android.util.Log.d("DISTANCE_DEBUG", "Selected Radius: " + item.radius + " KM");
             listener.onDistanceClick(item.radius);
         });
     }
@@ -87,22 +86,24 @@ public class DistanceFilterAdapter extends RecyclerView.Adapter<DistanceFilterAd
 
     static class ViewHolder extends RecyclerView.ViewHolder {
         final FrameLayout flIcon;
-        final ImageView ivIcon;
-        final TextView tvName;
+        final TextView tvLabel;
+        final TextView tvUnit;
 
         ViewHolder(View itemView) {
             super(itemView);
-            flIcon = itemView.findViewById(R.id.flCategoryIcon);
-            ivIcon = itemView.findViewById(R.id.ivCategoryIcon);
-            tvName = itemView.findViewById(R.id.tvCategoryName);
+            flIcon = itemView.findViewById(R.id.flDistanceIcon);
+            tvLabel = itemView.findViewById(R.id.tvDistanceLabel);
+            tvUnit = itemView.findViewById(R.id.tvDistanceUnit);
         }
     }
 
     static class DistanceModel {
+        String iconLabel;
         String label;
         Integer radius;
 
-        DistanceModel(String label, Integer radius) {
+        DistanceModel(String iconLabel, String label, Integer radius) {
+            this.iconLabel = iconLabel;
             this.label = label;
             this.radius = radius;
         }

@@ -5,6 +5,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <application
         android:usesCleartextTraffic="true"
@@ -49,6 +51,7 @@
         <activity android:name=".ui.profile.ManageAddressActivity" />
         <activity android:name=".ui.profile.AddEditAddressActivity" />
         <activity android:name=".ui.seller.OrderDetailActivity" />
+        <activity android:name=".ui.profile.MyVoucherActivity" />
 
 
         <provider
@@ -64,6 +67,21 @@
         <activity
             android:name=".ui.payment.PaymentActivity"
             android:label="Pembayaran" />
+        <activity android:name=".ui.chat.ChatActivity" />
+        <activity android:name=".ui.chat.ConversationsActivity" />
+        <activity android:name=".ui.payment.ScanQrActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.MarketPlace" />
+        <activity android:name=".ui.payment.PendingPaymentsActivity"
+            android:label="Tagihan Belum Dibayar" />
+        <activity android:name=".ui.payment.WalletActivity"
+            android:label="MeyPay Wallet" />
+        <activity android:name=".ui.payment.PaymentSuccessActivity"
+            android:label="Pembayaran Berhasil" />
+        <activity android:name=".ui.payment.InvoiceActivity"
+            android:label="Invoice Pembayaran" />
+        <activity android:name=".ui.payment.WalletPaymentActivity"
+            android:label="Bayar dengan MeyPay" />
 
     </application>
 

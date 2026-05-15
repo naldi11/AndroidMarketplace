@@ -8,6 +8,7 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.github.mikephil.charting.charts.BarChart;
 import com.github.mikephil.charting.charts.LineChart;
@@ -61,6 +62,7 @@ public class SellerDashboardActivity extends AppCompatActivity {
         setupToolbar();
         setupCharts();
         setupBottomNav();
+        setupChat();
         loadDashboardData();
     }
 
@@ -68,8 +70,8 @@ public class SellerDashboardActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         if (binding.bottomNav != null) {
-            binding.bottomNav.setSelectedItemId(R.id.nav_home);
-            com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(binding.bottomNav);
+            binding.bottomNav.bottomNav.setSelectedItemId(R.id.nav_home);
+            com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(binding.bottomNav.bottomNav);
         }
         loadDashboardData();
     }
@@ -80,16 +82,40 @@ public class SellerDashboardActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayHomeAsUpEnabled(false);
             getSupportActionBar().setTitle("Dashboard Seller");
         }
+
+        // Setup pull-to-refresh
+        SwipeRefreshLayout swipeRefresh = binding.swipeRefreshLayout;
+        swipeRefresh.setColorSchemeResources(R.color.primary_orange);
+        swipeRefresh.setOnRefreshListener(() -> {
+            loadDashboardData();
+        });
+    }
+
+    private void setupChat() {
+        if (binding.btnSellerChat != null) {
+            binding.btnSellerChat.setOnClickListener(v -> {
+                startActivity(new Intent(this, com.octania.marketplace.ui.chat.ConversationsActivity.class));
+            });
+        }
     }
 
     private void setupBottomNav() {
-        binding.bottomNav.setSelectedItemId(R.id.nav_home);
-        com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(binding.bottomNav);
+        binding.bottomNav.bottomNav.setSelectedItemId(R.id.nav_home);
+        com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(binding.bottomNav.bottomNav);
 
-        binding.bottomNav.setOnItemSelectedListener(item -> {
+/* 
+        findViewById(R.id.fabScan).setOnClickListener(v -> {
+            com.octania.marketplace.utils.NavigationUtils.showScanDialog(this);
+        });
+*/
+
+        binding.bottomNav.bottomNav.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
             if (id == R.id.nav_home) {
                 return true;
+            } else if (id == R.id.nav_scan) {
+                com.octania.marketplace.utils.NavigationUtils.showScanDialog(this);
+                return false;
             } else if (id == R.id.nav_add) {
                 startActivity(new Intent(this,
                         com.octania.marketplace.ui.product.MyProductsActivity.class));
@@ -147,25 +173,33 @@ public class SellerDashboardActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<ApiResponse<Object>> call, Response<ApiResponse<Object>> response) {
                 binding.progressBar.setVisibility(View.GONE);
+                binding.swipeRefreshLayout.setRefreshing(false);
 
                 if (response.isSuccessful() && response.body() != null) {
                     ApiResponse<Object> apiResponse = response.body();
-                    if ("success".equals(apiResponse.getStatus()) && apiResponse.getData() != null) {
+                    String status = apiResponse.getStatus();
+                    Object data = apiResponse.getData();
+
+                    android.util.Log.d("SELLER_DEBUG", "Status: " + status + ", data: " + (data != null));
+
+                    if ("success".equals(status) && data != null) {
                         try {
                             Gson gson = new Gson();
-                            String json = gson.toJson(apiResponse.getData());
-                            DashboardData data = gson.fromJson(json, DashboardData.class);
-                            updateUI(data);
+                            String json = gson.toJson(data);
+                            DashboardData dashData = gson.fromJson(json, DashboardData.class);
+                            updateUI(dashData);
+                            binding.progressBar.setVisibility(View.GONE);
+                            android.util.Log.d("SELLER_DEBUG", "Dashboard UI updated");
+                            Toast.makeText(SellerDashboardActivity.this, "Dashboard diperbarui", Toast.LENGTH_SHORT).show();
                         } catch (Exception e) {
-                            e.printStackTrace();
+                            android.util.Log.e("SELLER_DEBUG", "Error parsing", e);
                             showDashboardError("Gagal memproses data dashboard.");
                         }
+                    } else {
+                        showDashboardError("Status API: " + status);
                     }
                 } else {
-                    String msg = "Gagal memuat dashboard";
-                    try {
-                        if (response.errorBody() != null) msg += ": " + response.errorBody().string();
-                    } catch (Exception ignored) {}
+                    String msg = "Gagal memuat dashboard (Error " + response.code() + ")";
                     showDashboardError(msg);
                 }
             }
@@ -173,6 +207,8 @@ public class SellerDashboardActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call<ApiResponse<Object>> call, Throwable t) {
                 binding.progressBar.setVisibility(View.GONE);
+                binding.swipeRefreshLayout.setRefreshing(false);
+                android.util.Log.e("SELLER_DEBUG", "Failure", t);
                 showDashboardError("Koneksi gagal: " + t.getMessage());
             }
         });
@@ -192,6 +228,7 @@ public class SellerDashboardActivity extends AppCompatActivity {
     }
 
     private void updateSalesChart(List<SalesData> salesTrend) {
+        if (salesTrend == null || salesTrend.isEmpty()) return;
         List<Entry> entries = new ArrayList<>();
         List<String> labels = new ArrayList<>();
 
@@ -216,6 +253,7 @@ public class SellerDashboardActivity extends AppCompatActivity {
     }
 
     private void updateProductsChart(List<ProductSalesData> topProducts) {
+        if (topProducts == null || topProducts.isEmpty()) return;
         List<BarEntry> entries = new ArrayList<>();
         List<String> labels = new ArrayList<>();
 

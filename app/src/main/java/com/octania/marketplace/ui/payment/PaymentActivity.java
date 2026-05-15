@@ -1,5 +1,8 @@
 package com.octania.marketplace.ui.payment;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -8,13 +11,7 @@ import android.view.View;
 import android.widget.Toast;
 import android.database.Cursor;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
-import com.bumptech.glide.Glide;
 import com.octania.marketplace.data.model.ApiResponse;
 import com.octania.marketplace.data.remote.ApiClient;
 import com.octania.marketplace.data.remote.ApiService;
@@ -22,39 +19,28 @@ import com.octania.marketplace.databinding.ActivityPaymentBinding;
 import com.octania.marketplace.ui.home.HomeActivity;
 import com.octania.marketplace.utils.SessionManager;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.google.gson.Gson;
 
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
-
-import okhttp3.MediaType;
-import okhttp3.MultipartBody;
-import okhttp3.RequestBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+import android.graphics.Bitmap;
+import com.octania.marketplace.utils.QrCodeUtils;
+import java.io.OutputStream;
+import android.content.ContentValues;
+import android.provider.MediaStore;
+import android.os.CountDownTimer;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+import java.util.TimeZone;
 
 public class PaymentActivity extends AppCompatActivity {
     private ActivityPaymentBinding binding;
     private SessionManager sessionManager;
     private ApiService apiService;
     private int transactionId = -1;
-    private List<Uri> selectedImageUris = new ArrayList<>();
-    private ProofImageAdapter proofImageAdapter;
-
-    private final ActivityResultLauncher<Intent> filePickerLauncher = registerForActivityResult(
-            new ActivityResultContracts.StartActivityForResult(),
-            result -> {
-                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                    selectedImageUris.add(result.getData().getData());
-                    proofImageAdapter.notifyDataSetChanged();
-                    binding.btnSubmitProof.setEnabled(true);
-                    // Show preview of first selected image
-                    binding.cardProofPreview.setVisibility(View.VISIBLE);
-                    Glide.with(this).load(selectedImageUris.get(0)).into(binding.ivProofPreview);
-                }
-            });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,169 +65,288 @@ public class PaymentActivity extends AppCompatActivity {
             return;
         }
 
-        binding.tvInstruction.setText("Memuat informasi pembayaran...");
-        loadPaymentInstruction();
+        initViews();
+        loadTransactionData();
+        startPaymentStatusPolling();
+    }
 
-        // Hide preview card until image is selected
-        binding.cardProofPreview.setVisibility(View.GONE);
-
-        // Setup RecyclerView for multiple proof images
-        proofImageAdapter = new ProofImageAdapter(this, selectedImageUris);
-        binding.rvProofImages.setLayoutManager(new LinearLayoutManager(this, RecyclerView.HORIZONTAL, false));
-        binding.rvProofImages.setAdapter(proofImageAdapter);
-
-        binding.btnSelectProof.setOnClickListener(v -> openImageChooser());
-        binding.btnSubmitProof.setOnClickListener(v -> showConfirmationDialog());
-        binding.btnPayLater.setOnClickListener(v -> {
-            Intent intent = new Intent(this, HomeActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(intent);
+    private void initViews() {
+        binding.btnCheckStatus.setOnClickListener(v -> {
+            loadTransactionData();
+            checkStatus();
+        });
+        binding.btnDownloadQr.setOnClickListener(v -> downloadQrCode());
+        binding.btnPayWithWallet.setOnClickListener(v -> openWalletPayment());
+        
+        binding.cardVa.setOnClickListener(v -> {
+            String va = binding.tvMeyPayVA.getText().toString();
+            ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+            ClipData clip = ClipData.newPlainText("MeyPay VA", va);
+            if (clipboard != null) {
+                clipboard.setPrimaryClip(clip);
+                Toast.makeText(this, "Nomor VA berhasil disalin", Toast.LENGTH_SHORT).show();
+            }
         });
     }
 
-    private void loadPaymentInstruction() {
-        apiService.getSettingByKey("payment_info").enqueue(
-                new Callback<com.octania.marketplace.data.model.ApiResponse<java.util.Map<String, String>>>() {
-                    @Override
-                    public void onResponse(
-                            Call<com.octania.marketplace.data.model.ApiResponse<java.util.Map<String, String>>> call,
-                            Response<com.octania.marketplace.data.model.ApiResponse<java.util.Map<String, String>>> response) {
-                        String instruction;
-                        if (response.isSuccessful() && response.body() != null
-                                && response.body().getData() != null
-                                && response.body().getData().get("value") != null) {
-                            instruction = response.body().getData().get("value");
-                        } else {
-                            instruction = "Silakan transfer ke rekening yang tertera di halaman profil toko.\n"
-                                    + "Hubungi admin jika memerlukan bantuan.";
+    private Bitmap currentQrBitmap;
+    private double currentAmount = 0;
+    private CountDownTimer countDownTimer;
+
+    private void loadTransactionData() {
+        String token = "Bearer " + sessionManager.getToken();
+        apiService.getTransactionDetail(token, transactionId).enqueue(new Callback<ApiResponse<Object>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<Object>> call, Response<ApiResponse<Object>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    java.util.Map<String, Object> data = (java.util.Map<String, Object>) response.body().getData();
+                    if (data != null) {
+                        currentAmount = ((Number) data.get("total_amount")).doubleValue();
+                        binding.tvAmount.setText(String.format("Rp %,.0f", currentAmount));
+
+                        // Tampilkan nomor transaksi yang aman
+                        String txRef = (data.containsKey("transaction_number") && data.get("transaction_number") != null)
+                                ? String.valueOf(data.get("transaction_number"))
+                                : "#" + transactionId;
+                        binding.tvOrderNumber.setText("No. Pesanan: " + txRef);
+
+                        // Ambil expires_at untuk hitung sisa waktu nyata
+                        String expiresAt = (data.containsKey("expires_at") && data.get("expires_at") != null)
+                                ? String.valueOf(data.get("expires_at")) : null;
+                        
+                        if (data.containsKey("meypay_va") && data.get("meypay_va") != null) {
+                            binding.tvMeyPayVA.setText(String.valueOf(data.get("meypay_va")));
                         }
-                        binding.tvInstruction.setText(instruction
-                                + "\n\nID Pesanan: #" + transactionId);
+
+                        if (data.containsKey("meypay_qr_content") && data.get("meypay_qr_content") != null) {
+                            String qrContent = String.valueOf(data.get("meypay_qr_content"));
+                            currentQrBitmap = QrCodeUtils.generateQrCode(qrContent);
+                            if (currentQrBitmap != null) {
+                                binding.ivQrCode.setImageBitmap(currentQrBitmap);
+                            }
+                        }
+
+                        startCountdown(expiresAt);
                     }
+                }
+            }
 
-                    @Override
-                    public void onFailure(
-                            Call<com.octania.marketplace.data.model.ApiResponse<java.util.Map<String, String>>> call,
-                            Throwable t) {
-                        binding.tvInstruction.setText(
-                                "Silakan hubungi admin untuk mendapatkan informasi rekening.\n"
-                                        + "\nID Pesanan: #" + transactionId);
-                    }
-                });
+            @Override
+            public void onFailure(Call<ApiResponse<Object>> call, Throwable t) {}
+        });
     }
 
-    private void openImageChooser() {
-        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.setType("image/*");
-        filePickerLauncher.launch(intent);
-    }
+    private void startCountdown(String expiresAtStr) {
+        if (countDownTimer != null) countDownTimer.cancel();
 
-    private void showConfirmationDialog() {
-        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
-        builder.setMessage("Apakah Anda yakin ingin mengunggah bukti pembayaran?");
-        builder.setPositiveButton("Ya", (dialog, which) -> submitProof());
-        builder.setNegativeButton("Tidak", (dialog, which) -> dialog.dismiss());
-        builder.show();
-    }
+        long millisRemaining = 0;
 
-    private void submitProof() {
-        if (selectedImageUris.isEmpty()) {
-            Toast.makeText(this, "Pilih gambar bukti bayar dulu", Toast.LENGTH_SHORT).show();
+        if (expiresAtStr != null && !expiresAtStr.isEmpty() && !"null".equals(expiresAtStr)) {
+            // Format dari Laravel: "2026-05-12T18:21:11.000000Z" atau "2026-05-12 18:21:11"
+            String[] formats = {
+                "yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'",
+                "yyyy-MM-dd'T'HH:mm:ss'Z'",
+                "yyyy-MM-dd HH:mm:ss"
+            };
+            Date expireDate = null;
+            for (String fmt : formats) {
+                try {
+                    SimpleDateFormat sdf = new SimpleDateFormat(fmt, Locale.getDefault());
+                    sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+                    expireDate = sdf.parse(expiresAtStr);
+                    break;
+                } catch (ParseException ignored) {}
+            }
+            if (expireDate != null) {
+                millisRemaining = expireDate.getTime() - System.currentTimeMillis();
+            }
+        }
+
+        // Fallback: jika tidak bisa parse, pakai 15 menit dari sekarang
+        if (millisRemaining <= 0 && expiresAtStr == null) {
+            millisRemaining = 15L * 60 * 1000;
+        } else if (millisRemaining <= 0) {
+            // Waktu sudah habis
+            binding.tvCountdown.setText("EXPIRED");
+            binding.tvCountdown.setTextColor(0xFFD32F2F);
+            binding.btnPayWithWallet.setEnabled(false);
+            binding.btnPayWithWallet.setText("WAKTU HABIS");
+            Toast.makeText(this, "Waktu pembayaran telah habis. Pesanan akan dibatalkan otomatis.", Toast.LENGTH_LONG).show();
             return;
         }
 
-        binding.btnSubmitProof.setEnabled(false);
-        binding.btnSubmitProof.setText("Mengunggah...");
+        final long duration = millisRemaining;
+        countDownTimer = new CountDownTimer(duration, 1000) {
+            public void onTick(long millisUntilFinished) {
+                long hours   = millisUntilFinished / (1000 * 60 * 60);
+                long minutes = (millisUntilFinished / (1000 * 60)) % 60;
+                long seconds = (millisUntilFinished / 1000) % 60;
+                String timeStr = String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds);
+                binding.tvCountdown.setText(timeStr);
 
-        // Upload all images sequentially
-        uploadNextProof(0);
+                // Warna merah jika kurang dari 1 jam
+                if (millisUntilFinished < 60 * 60 * 1000) {
+                    binding.tvCountdown.setTextColor(0xFFD32F2F); // merah
+                } else if (millisUntilFinished < 3 * 60 * 60 * 1000) {
+                    binding.tvCountdown.setTextColor(0xFFFF6F00); // oranye
+                } else {
+                    binding.tvCountdown.setTextColor(0xFF4CAF50); // hijau
+                }
+            }
+            public void onFinish() {
+                binding.tvCountdown.setText("EXPIRED");
+                binding.tvCountdown.setTextColor(0xFFD32F2F);
+                binding.btnPayWithWallet.setEnabled(false);
+                binding.btnPayWithWallet.setText("WAKTU HABIS");
+                Toast.makeText(PaymentActivity.this, "Waktu pembayaran telah habis", Toast.LENGTH_LONG).show();
+            }
+        }.start();
     }
 
-    private void uploadNextProof(int index) {
-        if (index >= selectedImageUris.size()) {
-            // All images uploaded successfully
-            Toast.makeText(PaymentActivity.this, "Semua bukti pembayaran berhasil diunggah", Toast.LENGTH_SHORT).show();
-            Intent intent = new Intent(PaymentActivity.this, HomeActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(intent);
-            return;
-        }
+    /**
+     * Arahkan ke layar konfirmasi pembayaran MeyPay
+     * Bukan langsung proses — user harus konfirmasi dulu di WalletPaymentActivity
+     */
+    private void openWalletPayment() {
+        Intent intent = new Intent(this, WalletPaymentActivity.class);
+        intent.putExtra("transaction_id", transactionId);
+        intent.putExtra("amount", currentAmount);
+        startActivity(intent);
+    }
 
-        binding.btnSubmitProof.setText("Mengunggah " + (index + 1) + "/" + selectedImageUris.size() + "...");
+    private void payWithWallet() {
+        binding.btnPayWithWallet.setEnabled(false);
+        binding.btnPayWithWallet.setText("MEMPROSES...");
+
+        String token = "Bearer " + sessionManager.getToken();
+        apiService.payWithWallet(token, transactionId).enqueue(new Callback<ApiResponse<Object>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<Object>> call, Response<ApiResponse<Object>> response) {
+                if (response.isSuccessful()) {
+                    Toast.makeText(PaymentActivity.this, "Pembayaran Berhasil!", Toast.LENGTH_SHORT).show();
+                    Intent intent = new Intent(PaymentActivity.this, PaymentSuccessActivity.class);
+                    intent.putExtra("transaction_id", transactionId);
+                    startActivity(intent);
+                    finish();
+                } else {
+                    binding.btnPayWithWallet.setEnabled(true);
+                    binding.btnPayWithWallet.setText("BAYAR DENGAN SALDO MEYPAY");
+                    
+                    String message = "Gagal memproses pembayaran";
+                    try {
+                        if (response.errorBody() != null) {
+                            String errStr = response.errorBody().string();
+                            ApiResponse<?> err = new Gson().fromJson(errStr, ApiResponse.class);
+                            if (err != null && err.getMessage() != null) message = err.getMessage();
+                        }
+                    } catch (Exception ignored) {}
+                    
+                    Toast.makeText(PaymentActivity.this, message, Toast.LENGTH_LONG).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<Object>> call, Throwable t) {
+                binding.btnPayWithWallet.setEnabled(true);
+                binding.btnPayWithWallet.setText("BAYAR DENGAN SALDO MEYPAY");
+                Toast.makeText(PaymentActivity.this, "Error Jaringan: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void checkStatus() {
+        String token = "Bearer " + sessionManager.getToken();
+        apiService.checkPaymentStatus(token, transactionId).enqueue(new Callback<ApiResponse<Object>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<Object>> call, Response<ApiResponse<Object>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    java.util.Map<String, Object> data = (java.util.Map<String, Object>) response.body().getData();
+                    String status = String.valueOf(data.get("payment_status"));
+                    if ("paid_verified".equals(status) || "processing".equals(status) || "packed".equals(status) || "shipped".equals(status)) {
+                        onPaymentSuccess();
+                    } else {
+                        Toast.makeText(PaymentActivity.this, "Status: " + status, Toast.LENGTH_SHORT).show();
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<Object>> call, Throwable t) {}
+        });
+    }
+
+    private void onPaymentSuccess() {
+        stopPolling();
+        Intent intent = new Intent(this, PaymentSuccessActivity.class);
+        intent.putExtra("amount", currentAmount);
+        intent.putExtra("transaction_id", transactionId);
+        startActivity(intent);
+        finish();
+    }
+
+    private void downloadQrCode() {
+        if (currentQrBitmap == null) return;
 
         try {
-            Uri imageUri = selectedImageUris.get(index);
-            java.io.File imageFile = createTempFileFromUri(imageUri);
-            RequestBody requestFile = RequestBody.create(MediaType.parse("image/jpeg"), imageFile);
-            MultipartBody.Part body = MultipartBody.Part.createFormData("proof_of_payment", imageFile.getName(),
-                    requestFile);
+            String filename = "QRIS_MeyPay_" + transactionId + ".png";
+            ContentValues values = new ContentValues();
+            values.put(MediaStore.Images.Media.DISPLAY_NAME, filename);
+            values.put(MediaStore.Images.Media.MIME_TYPE, "image/png");
+            values.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/MeyPay");
 
-            String token = "Bearer " + sessionManager.getToken();
-            apiService.uploadProof(token, transactionId, body).enqueue(new Callback<ApiResponse<Object>>() {
-                @Override
-                public void onResponse(Call<ApiResponse<Object>> call, Response<ApiResponse<Object>> response) {
-                    if (response.isSuccessful()) {
-                        // Upload next image
-                        uploadNextProof(index + 1);
-                    } else {
-                        binding.btnSubmitProof.setEnabled(true);
-                        binding.btnSubmitProof.setText("KIRIM BUKTI PEMBAYARAN");
-                        try {
-                            String errorBody = response.errorBody() != null ? response.errorBody().string()
-                                    : "Unknown error";
-                            android.util.Log.e("UploadProof", "Error HTTP " + response.code() + ": " + errorBody);
-                        } catch (Exception e) {}
-                        Toast.makeText(PaymentActivity.this, "Gagal upload gambar ke-" + (index + 1), Toast.LENGTH_SHORT).show();
-                    }
-                }
-
-                @Override
-                public void onFailure(Call<ApiResponse<Object>> call, Throwable t) {
-                    binding.btnSubmitProof.setEnabled(true);
-                    binding.btnSubmitProof.setText("KIRIM BUKTI PEMBAYARAN");
-                    Toast.makeText(PaymentActivity.this, "Jaringan Error: " + t.getMessage(), Toast.LENGTH_SHORT)
-                            .show();
-                }
-            });
+            Uri uri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+            if (uri != null) {
+                OutputStream out = getContentResolver().openOutputStream(uri);
+                currentQrBitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
+                out.flush();
+                out.close();
+                Toast.makeText(this, "QRIS berhasil diunduh ke Galeri", Toast.LENGTH_SHORT).show();
+            }
         } catch (Exception e) {
-            binding.btnSubmitProof.setEnabled(true);
-            binding.btnSubmitProof.setText("KIRIM BUKTI PEMBAYARAN");
-            Toast.makeText(this, "Error membaca file: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            e.printStackTrace();
+            Toast.makeText(this, "Gagal mengunduh QRIS", Toast.LENGTH_SHORT).show();
         }
     }
 
-    private java.io.File createTempFileFromUri(Uri uri) throws java.io.IOException {
-        InputStream inputStream = getContentResolver().openInputStream(uri);
-        android.graphics.Bitmap bitmap = android.graphics.BitmapFactory.decodeStream(inputStream);
-        java.io.File tempFile = java.io.File.createTempFile("proof_", ".jpg", getCacheDir());
-        java.io.FileOutputStream out = new java.io.FileOutputStream(tempFile);
+    // Polling logic
+    private android.os.Handler pollingHandler = new android.os.Handler();
+    private Runnable pollingRunnable = new Runnable() {
+        @Override
+        public void run() {
+            checkStatusSilent();
+            pollingHandler.postDelayed(this, 5000); // Poll every 5 seconds
+        }
+    };
 
-        if (bitmap != null) {
-            int maxResolution = 1000;
-            int width = bitmap.getWidth();
-            int height = bitmap.getHeight();
-            if (width > maxResolution || height > maxResolution) {
-                float ratio = Math.min((float) maxResolution / width, (float) maxResolution / height);
-                width = Math.round(ratio * width);
-                height = Math.round(ratio * height);
-            }
-            android.graphics.Bitmap resized = android.graphics.Bitmap.createScaledBitmap(bitmap, width, height, true);
-            resized.compress(android.graphics.Bitmap.CompressFormat.JPEG, 70, out);
-        } else {
-            // Fallback
-            inputStream = getContentResolver().openInputStream(uri);
-            if (inputStream != null) {
-                byte[] buffer = new byte[1024];
-                int bytesRead;
-                while ((bytesRead = inputStream.read(buffer)) != -1) {
-                    out.write(buffer, 0, bytesRead);
+    private void startPaymentStatusPolling() {
+        pollingHandler.postDelayed(pollingRunnable, 5000);
+    }
+
+    private void stopPolling() {
+        pollingHandler.removeCallbacks(pollingRunnable);
+    }
+
+    private void checkStatusSilent() {
+        String token = "Bearer " + sessionManager.getToken();
+        apiService.checkPaymentStatus(token, transactionId).enqueue(new Callback<ApiResponse<Object>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<Object>> call, Response<ApiResponse<Object>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    java.util.Map<String, Object> data = (java.util.Map<String, Object>) response.body().getData();
+                    String status = String.valueOf(data.get("payment_status"));
+                    if ("paid_verified".equals(status) || "processing".equals(status) || "packed".equals(status) || "shipped".equals(status)) {
+                        onPaymentSuccess();
+                    }
                 }
             }
-        }
+            @Override
+            public void onFailure(Call<ApiResponse<Object>> call, Throwable t) {}
+        });
+    }
 
-        out.close();
-        if (inputStream != null)
-            inputStream.close();
-        return tempFile;
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        stopPolling();
     }
 }

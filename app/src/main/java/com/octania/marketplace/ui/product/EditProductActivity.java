@@ -40,10 +40,21 @@ public class EditProductActivity extends AppCompatActivity {
     private final List<Integer> categoryIds = new ArrayList<>();
 
     // Condition data
-    private static final String[] CONDITIONS = { "new", "used", "like_new", "good", "fair" };
-    private static final String[] CONDITION_LABELS = { "Baru", "Bekas", "Seperti Baru", "Bagus", "Cukup" };
+    private static final String[] CONDITIONS = { "like_new", "used" };
+    private static final String[] CONDITION_LABELS = { "Seperti Baru", "Bekas" };
 
     private final String[] weightUnits = { "gr", "kg" };
+
+    private final androidx.activity.result.ActivityResultLauncher<android.content.Intent> mapPickerLauncher = registerForActivityResult(
+            new androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == android.app.Activity.RESULT_OK && result.getData() != null) {
+                    String address = result.getData().getStringExtra("picked_address");
+                    if (address != null) {
+                        binding.etLocation.setText(address);
+                    }
+                }
+            });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,6 +86,11 @@ public class EditProductActivity extends AppCompatActivity {
                 weightUnits);
         weightAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         binding.spWeightUnit.setAdapter(weightAdapter);
+
+        binding.tilLocation.setEndIconOnClickListener(v -> {
+            android.content.Intent intent = new android.content.Intent(this, com.octania.marketplace.ui.profile.MapPickerActivity.class);
+            mapPickerLauncher.launch(intent);
+        });
 
         fetchCategories();
         fetchProductDetail();

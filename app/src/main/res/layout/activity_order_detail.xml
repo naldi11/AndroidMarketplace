@@ -65,23 +65,15 @@
                             android:layout_weight="1"
                             android:orientation="vertical">
 
-                            <TextView
-                                android:id="@+id/tvShopName"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Toko Penjual"
-                                android:textSize="15sp"
-                                android:textStyle="bold"
-                                android:textColor="#1A1A1A" />
 
                             <TextView
                                 android:id="@+id/tvOrderId"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="#INV-000"
-                                android:textSize="11sp"
-                                android:textColor="#888"
-                                android:layout_marginTop="2dp" />
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                android:textColor="#1A1A1A" />
                         </LinearLayout>
 
                         <TextView
@@ -192,11 +184,7 @@
                         <TextView android:id="@+id/tvDiscount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="- Rp 0" android:textSize="13sp" android:textColor="#E53935" />
                     </LinearLayout>
 
-                    <!-- Shipping Cost (Ongkir) -->
-                    <LinearLayout android:id="@+id/rowShippingCost" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="6dp" android:visibility="gone">
-                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Biaya Ongkir" android:textSize="13sp" android:textColor="#666" />
-                        <TextView android:id="@+id/tvShippingCost" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Rp 0" android:textSize="13sp" android:textColor="#333" />
-                    </LinearLayout>
+
 
                     <!-- Service Fee -->
                     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="12dp">
@@ -240,10 +228,18 @@
                         android:textColor="#333"
                         android:layout_marginBottom="10dp" />
 
-                    <!-- Payment Method -->
+
+
+                    <!-- Recipient Name -->
                     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="8dp">
-                        <TextView android:layout_width="120dp" android:layout_height="wrap_content" android:text="Metode Bayar" android:textSize="12sp" android:textColor="#888" />
-                        <TextView android:id="@+id/tvPaymentMethod" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="-" android:textSize="12sp" android:textColor="#333" android:textStyle="bold" />
+                        <TextView android:layout_width="120dp" android:layout_height="wrap_content" android:text="Nama Penerima" android:textSize="12sp" android:textColor="#888" />
+                        <TextView android:id="@+id/tvRecipientName" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="-" android:textSize="12sp" android:textColor="#333" android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- Recipient Phone -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="8dp">
+                        <TextView android:layout_width="120dp" android:layout_height="wrap_content" android:text="Nomor Telepon" android:textSize="12sp" android:textColor="#888" />
+                        <TextView android:id="@+id/tvRecipientPhone" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="-" android:textSize="12sp" android:textColor="#333" />
                     </LinearLayout>
 
                     <!-- Shipping Address -->
@@ -252,11 +248,7 @@
                         <TextView android:id="@+id/tvShippingAddress" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="-" android:textSize="12sp" android:textColor="#333" />
                     </LinearLayout>
 
-                    <!-- Courier Info -->
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="8dp">
-                        <TextView android:layout_width="120dp" android:layout_height="wrap_content" android:text="Kurir / Tipe" android:textSize="12sp" android:textColor="#888" />
-                        <TextView android:id="@+id/tvCourier" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="-" android:textSize="12sp" android:textColor="#333" />
-                    </LinearLayout>
+
 
                     <!-- Tracking Number -->
                     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">

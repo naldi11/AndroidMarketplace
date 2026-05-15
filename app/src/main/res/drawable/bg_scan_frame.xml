@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Border tipis transparan -->
+    <item>
+        <shape android:shape="rectangle">
+            <stroke
+                android:width="1dp"
+                android:color="#44FFFFFF" />
+            <solid android:color="@android:color/transparent" />
+        </shape>
+    </item>
+
+    <!-- Top Left Corner (L-Shape) -->
+    <!-- Vertical line -->
+    <item android:right="256dp" android:bottom="235dp">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/primary_orange" />
+        </shape>
+    </item>
+    <!-- Horizontal line -->
+    <item android:right="235dp" android:bottom="256dp">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/primary_orange" />
+        </shape>
+    </item>
+
+    <!-- Top Right Corner (L-Shape) -->
+    <!-- Vertical line -->
+    <item android:left="256dp" android:bottom="235dp">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/primary_orange" />
+        </shape>
+    </item>
+    <!-- Horizontal line -->
+    <item android:left="235dp" android:bottom="256dp">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/primary_orange" />
+        </shape>
+    </item>
+
+    <!-- Bottom Left Corner (L-Shape) -->
+    <!-- Vertical line -->
+    <item android:right="256dp" android:top="235dp">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/primary_orange" />
+        </shape>
+    </item>
+    <!-- Horizontal line -->
+    <item android:right="235dp" android:top="256dp">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/primary_orange" />
+        </shape>
+    </item>
+
+    <!-- Bottom Right Corner (L-Shape) -->
+    <!-- Vertical line -->
+    <item android:left="256dp" android:top="235dp">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/primary_orange" />
+        </shape>
+    </item>
+    <!-- Horizontal line -->
+    <item android:left="235dp" android:top="256dp">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/primary_orange" />
+        </shape>
+    </item>
+</layer-list>

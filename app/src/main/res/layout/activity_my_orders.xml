@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     android:background="@color/bg_light">
 
-    <!-- Header: Match Seller Orders Style -->
+    <!-- Header -->
     <LinearLayout
+        android:id="@+id/headerLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:padding="16dp"
-        android:background="@color/white">
-
+        android:background="@color/white"
+        android:elevation="4dp">
         <ImageView
             android:id="@+id/btnBack"
             android:layout_width="32dp"
@@ -22,10 +22,7 @@
             android:padding="4dp"
             android:src="@drawable/ic_remove"
             android:rotation="180"
-            app:tint="@color/text_dark"
-            android:background="?selectableItemBackgroundBorderless"
-            android:contentDescription="Back" />
-
+            app:tint="@color/text_dark" />
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -42,52 +39,39 @@
         android:id="@+id/tabLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_below="@id/headerLayout"
         android:background="@color/white"
         app:tabMode="scrollable"
         app:tabSelectedTextColor="@color/primary_orange"
         app:tabIndicatorColor="@color/primary_orange"
-        app:tabTextColor="@color/grey_inactive"
-        app:tabTextAppearance="@style/TextAppearance.MaterialComponents.Caption">
-
+        app:tabTextColor="@color/grey_inactive">
         <com.google.android.material.tabs.TabItem android:text="Semua" />
         <com.google.android.material.tabs.TabItem android:text="Belum Bayar" />
         <com.google.android.material.tabs.TabItem android:text="Dikemas" />
         <com.google.android.material.tabs.TabItem android:text="Dikirim" />
         <com.google.android.material.tabs.TabItem android:text="Selesai" />
-        <com.google.android.material.tabs.TabItem android:text="Dibatalkan" />
-
     </com.google.android.material.tabs.TabLayout>
 
     <!-- Order List -->
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipeRefresh"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1">
-
+        android:layout_height="match_parent"
+        android:layout_below="@id/tabLayout"
+        android:layout_above="@id/bottomNavInclude">
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvMyOrders"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:clipToPadding="false"
             android:padding="8dp"
-            android:paddingBottom="16dp" />
+            android:clipToPadding="false" />
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
-    <!-- Bottom Navigation with Floating Effect -->
-    <FrameLayout
+    <include
+        android:id="@+id/bottomNavInclude"
+        layout="@layout/layout_bottom_nav_buyer"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="12dp">
-        <com.google.android.material.bottomnavigation.BottomNavigationView
-            android:id="@+id/bottomNav"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@drawable/bg_bottom_nav"
-            android:elevation="12dp"
-            app:itemIconTint="@color/nav_item_color"
-            app:itemTextColor="@color/nav_item_color"
-            app:menu="@menu/bottom_nav_buyer" />
-    </FrameLayout>
+        android:layout_height="100dp"
+        android:layout_alignParentBottom="true" />
 
-</LinearLayout>
+</RelativeLayout>

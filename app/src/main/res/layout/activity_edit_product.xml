@@ -167,10 +167,13 @@
 
             <!-- Location -->
             <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/tilLocation"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="Lokasi"
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                app:endIconMode="custom"
+                app:endIconDrawable="@android:drawable/ic_menu_mylocation"
                 android:layout_marginBottom="12dp">
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/etLocation"

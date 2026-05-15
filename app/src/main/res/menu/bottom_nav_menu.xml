@@ -9,9 +9,9 @@
         android:icon="@drawable/ic_baseline_store_24"
         android:title="Pesanan" />
     <item
-        android:id="@+id/nav_add"
-        android:icon="@drawable/ic_add"
-        android:title="Jual" />
+        android:id="@+id/nav_scan"
+        android:icon="@drawable/ic_scan"
+        android:title="Scan" />
     <item
         android:id="@+id/nav_wishlist"
         android:icon="@drawable/ic_love"

@@ -54,7 +54,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Marketplace Mahasiswa Indonesia"
+        android:text="Market Barang Bekas dan Pindahan"
         android:textColor="@color/white"
         android:textSize="14sp"
         android:alpha="0"

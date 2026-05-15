@@ -55,10 +55,10 @@ public class MyProductsActivity extends AppCompatActivity {
 
     private void setupBottomNav() {
         if (binding.bottomNav == null) return;
-        binding.bottomNav.setSelectedItemId(R.id.nav_add);
-        com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(binding.bottomNav);
+        binding.bottomNav.bottomNav.setSelectedItemId(R.id.nav_add);
+        com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(binding.bottomNav.bottomNav);
 
-        binding.bottomNav.setOnItemSelectedListener(item -> {
+        binding.bottomNav.bottomNav.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
             if (id == R.id.nav_home) {
                 startActivity(new Intent(this, com.octania.marketplace.ui.seller.SellerDashboardActivity.class));
@@ -83,8 +83,8 @@ public class MyProductsActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         if (binding.bottomNav != null) {
-            binding.bottomNav.setSelectedItemId(R.id.nav_add);
-            com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(binding.bottomNav);
+            binding.bottomNav.bottomNav.setSelectedItemId(R.id.nav_add);
+            com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(binding.bottomNav.bottomNav);
         }
         fetchMyProducts();
     }

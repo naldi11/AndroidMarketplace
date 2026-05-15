@@ -98,6 +98,7 @@ public class LoginActivity extends AppCompatActivity {
                         }
 
                         sessionManager.createLoginSession(token, userId, role);
+                        sessionManager.saveUser(res.getData());
 
                         Toast.makeText(LoginActivity.this, "Login Berhasil", Toast.LENGTH_SHORT).show();
                         if ("seller".equals(role)) {
