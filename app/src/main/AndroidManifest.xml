@@ -6,9 +6,11 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <application
+        android:name=".MarketplaceApp"
         android:usesCleartextTraffic="true"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -33,6 +35,7 @@
         
         <activity android:name=".ui.auth.RegisterActivity" />
         <activity android:name=".ui.home.HomeActivity" />
+        <activity android:name=".ui.home.GuestHomeActivity" />
         <activity android:name=".ui.product.ProductDetailActivity" />
         <activity android:name=".ui.product.AddProductActivity" />
         <activity android:name=".ui.product.MyProductsActivity" />
@@ -52,6 +55,12 @@
         <activity android:name=".ui.profile.AddEditAddressActivity" />
         <activity android:name=".ui.seller.OrderDetailActivity" />
         <activity android:name=".ui.profile.MyVoucherActivity" />
+
+        <activity
+            android:name=".ui.dispute.DisputeDetailActivity"
+            android:label="Laporan Masalah"
+            android:parentActivityName=".ui.transaction.TransactionActivity"
+            android:exported="false"/>
 
 
         <provider

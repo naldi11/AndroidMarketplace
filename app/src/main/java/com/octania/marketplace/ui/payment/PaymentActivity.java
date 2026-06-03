@@ -41,6 +41,7 @@ public class PaymentActivity extends AppCompatActivity {
     private SessionManager sessionManager;
     private ApiService apiService;
     private int transactionId = -1;
+    private String transactionNumber = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -105,10 +106,12 @@ public class PaymentActivity extends AppCompatActivity {
                         binding.tvAmount.setText(String.format("Rp %,.0f", currentAmount));
 
                         // Tampilkan nomor transaksi yang aman
-                        String txRef = (data.containsKey("transaction_number") && data.get("transaction_number") != null)
-                                ? String.valueOf(data.get("transaction_number"))
-                                : "#" + transactionId;
-                        binding.tvOrderNumber.setText("No. Pesanan: " + txRef);
+                        if (data.containsKey("transaction_number") && data.get("transaction_number") != null) {
+                            transactionNumber = String.valueOf(data.get("transaction_number"));
+                        } else {
+                            transactionNumber = "#" + transactionId;
+                        }
+                        binding.tvOrderNumber.setText("No. Pesanan: " + transactionNumber);
 
                         // Ambil expires_at untuk hitung sisa waktu nyata
                         String expiresAt = (data.containsKey("expires_at") && data.get("expires_at") != null)
@@ -211,6 +214,7 @@ public class PaymentActivity extends AppCompatActivity {
         Intent intent = new Intent(this, WalletPaymentActivity.class);
         intent.putExtra("transaction_id", transactionId);
         intent.putExtra("amount", currentAmount);
+        intent.putExtra("transaction_number", transactionNumber);
         startActivity(intent);
     }
 

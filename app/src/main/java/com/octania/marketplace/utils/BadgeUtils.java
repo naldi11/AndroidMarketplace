@@ -34,6 +34,9 @@ public class BadgeUtils {
         int wishlist = session.getWishlistCount();
         int cart     = session.getCartCount();
         applyBadges(bottomNav, wishlist, cart);
+        
+        int dispute = session.getDisputeCount();
+        applyDisputeBadge(bottomNav, dispute);
     }
 
     /**
@@ -78,11 +81,67 @@ public class BadgeUtils {
                 // Tetap tampilkan dari cache jika network gagal
             }
         });
+
+        // Auto-fetch dispute badge
+        fetchAndApplyDisputeBadge(context, token, bottomNav);
     }
 
     /** Terapkan badge ke item nav secara langsung */
     public static void applyBadges(BottomNavigationView nav, int wishlist, int cart) {
         applyBadge(nav, R.id.nav_wishlist, wishlist);
+    }
+
+    /** Terapkan badge laporan masalah ke nav_orders */
+    public static void applyDisputeBadge(BottomNavigationView nav, int disputeCount) {
+        applyBadge(nav, R.id.nav_orders, disputeCount);
+    }
+
+    /**
+     * Fetch jumlah dispute aktif dari API dan tampilkan badge di nav_orders.
+     * Panggil di onResume Activity yang punya bottom nav.
+     */
+    public static void fetchAndApplyDisputeBadge(Context context, String token,
+                                                  BottomNavigationView nav) {
+        com.octania.marketplace.data.remote.ApiService apiService =
+                ApiClient.getClient().create(com.octania.marketplace.data.remote.ApiService.class);
+
+        apiService.getTransactions(token).enqueue(new Callback<ApiResponse<java.util.List<Object>>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<java.util.List<Object>>> call,
+                                   Response<ApiResponse<java.util.List<Object>>> response) {
+                if (!response.isSuccessful() || response.body() == null) return;
+                try {
+                    // Hitung transaksi dengan status disputed / buyer_won / buyer_shipping_back
+                    com.google.gson.Gson gson = new com.google.gson.Gson();
+                    com.google.gson.reflect.TypeToken<java.util.List<com.octania.marketplace.data.model.Transaction>> tt =
+                            new com.google.gson.reflect.TypeToken<java.util.List<com.octania.marketplace.data.model.Transaction>>(){};
+                    Object raw = response.body().getData();
+                    java.util.List<com.octania.marketplace.data.model.Transaction> list =
+                            gson.fromJson(gson.toJson(raw), tt.getType());
+                    int count = 0;
+                    if (list != null) {
+                        for (com.octania.marketplace.data.model.Transaction t : list) {
+                            String s = t.getStatus();
+                            if ("disputed".equals(s) || "buyer_won".equals(s)
+                                    || "buyer_shipping_back".equals(s)) count++;
+                        }
+                    }
+                    final int finalCount = count;
+                    
+                    // Simpan ke cache
+                    SessionManager session = new SessionManager(context);
+                    session.saveDisputeCount(finalCount);
+                    
+                    if (context instanceof Activity) {
+                        ((Activity) context).runOnUiThread(() ->
+                                applyBadge(nav, R.id.nav_orders, finalCount));
+                    }
+                } catch (Exception ignored) {}
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<java.util.List<Object>>> call, Throwable t) {}
+        });
     }
 
     private static void applyBadge(BottomNavigationView nav, int menuItemId, int count) {

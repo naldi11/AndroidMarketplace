@@ -35,13 +35,12 @@ public class DistanceFilterAdapter extends RecyclerView.Adapter<DistanceFilterAd
     }
 
     private void setupItems() {
-        items.add(new DistanceModel("0", "Semua", null));
+        items.add(new DistanceModel("0", "Semua", 15));
         items.add(new DistanceModel("1", "1 KM", 1));
-        items.add(new DistanceModel("2", "2 KM", 2));
         items.add(new DistanceModel("3", "3 KM", 3));
-        items.add(new DistanceModel("4", "4 KM", 4));
         items.add(new DistanceModel("5", "5 KM", 5));
-        items.add(new DistanceModel("5+", "5++ KM", 100));
+        items.add(new DistanceModel("10", "10 KM", 10));
+        items.add(new DistanceModel("15", "15 KM", 15));
     }
 
     @NonNull

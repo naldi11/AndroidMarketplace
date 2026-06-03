@@ -165,7 +165,13 @@ public class ProductDetailActivity extends AppCompatActivity {
 
         // Distance
         if (product.getDistanceKm() != null) {
-            binding.tvProductDistance.setText(String.format("📍 %.1f km dari Anda", product.getDistanceKm()));
+            Double dist = product.getDistanceKm();
+            if (dist < 1.0) {
+                int meters = (int) Math.round(dist * 1000);
+                binding.tvProductDistance.setText("📍 " + meters + " m dari Anda");
+            } else {
+                binding.tvProductDistance.setText(String.format(java.util.Locale.US, "📍 %.1f km dari Anda", dist));
+            }
             binding.tvProductDistance.setVisibility(View.VISIBLE);
         } else {
             binding.tvProductDistance.setVisibility(View.GONE);

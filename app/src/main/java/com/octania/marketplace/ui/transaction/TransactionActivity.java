@@ -1,15 +1,21 @@
 package com.octania.marketplace.ui.transaction;
 
 import android.app.Activity;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.OpenableColumns;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
+
+import androidx.core.app.NotificationCompat;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -119,6 +125,7 @@ public class TransactionActivity extends AppCompatActivity {
                                 binding.tvEmptyTransactions.setVisibility(View.GONE);
                                 binding.rvTransactions.setVisibility(View.VISIBLE);
                                 adapter.updateData(transactions);
+                                checkAndNotifyDisputeAction(transactions);
                             }
                         } catch (Exception e) {
                             Toast.makeText(TransactionActivity.this, "Gagal memproses parsing transaksi.",
@@ -201,6 +208,54 @@ public class TransactionActivity extends AppCompatActivity {
             byteBuffer.write(buffer, 0, len);
         }
         return byteBuffer.toByteArray();
+    }
+
+    /** Cek apakah ada dispute yang butuh aksi pembeli, kirim notifikasi lokal */
+    private void checkAndNotifyDisputeAction(List<Transaction> transactions) {
+        for (Transaction t : transactions) {
+            String status = t.getStatus();
+            if ("buyer_won".equals(status)) {
+                sendLocalNotification(
+                    "Laporan Masalah — Tindakan Diperlukan",
+                    "Kamu memenangkan laporan. Segera kirim barang kembali ke penjual.",
+                    t.getId()
+                );
+                return;
+            }
+        }
+    }
+
+    private static final String NOTIF_CHANNEL_ID = "dispute_channel";
+
+    private void sendLocalNotification(String title, String body, int transactionId) {
+        NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        if (nm == null) return;
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel ch = new NotificationChannel(
+                NOTIF_CHANNEL_ID, "Laporan Masalah", NotificationManager.IMPORTANCE_HIGH);
+            ch.setDescription("Notifikasi update laporan masalah");
+            nm.createNotificationChannel(ch);
+        }
+
+        Intent intent = new Intent(this, com.octania.marketplace.ui.dispute.DisputeDetailActivity.class);
+        intent.putExtra(com.octania.marketplace.ui.dispute.DisputeDetailActivity.EXTRA_TRANSACTION_ID, transactionId);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+
+        PendingIntent pi = PendingIntent.getActivity(this, transactionId, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, NOTIF_CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .setContentIntent(pi)
+            .setVibrate(new long[]{0, 300, 100, 300});
+
+        nm.notify(transactionId, builder.build());
     }
 
     @Override

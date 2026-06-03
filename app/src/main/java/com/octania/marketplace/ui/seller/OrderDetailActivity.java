@@ -60,8 +60,9 @@ public class OrderDetailActivity extends AppCompatActivity {
 
     // Views
     private TextView tvOrderId, tvStatus, tvOrderDate, tvRejectionReason;
-    private TextView tvSubtotal, tvDiscount, tvServiceFee, tvTotal;
-    private TextView tvShippingAddress, tvTrackingNumber, tvRecipientName, tvRecipientPhone;
+    private TextView tvSubtotal, tvDiscount, tvShippingCost, tvServiceFee, tvTotal;
+    private View rowServiceFee;
+    private TextView tvShippingAddress, tvShippingVehicle, tvTrackingNumber, tvRecipientName, tvRecipientPhone;
     private LinearLayout llItems, rowDiscount;
     private MaterialButton btnAction, btnCancel;
 
@@ -120,9 +121,12 @@ public class OrderDetailActivity extends AppCompatActivity {
         tvRejectionReason = findViewById(R.id.tvRejectionReason);
         tvSubtotal = findViewById(R.id.tvSubtotal);
         tvDiscount = findViewById(R.id.tvDiscount);
+        tvShippingCost = findViewById(R.id.tvShippingCost);
         tvServiceFee = findViewById(R.id.tvServiceFee);
+        rowServiceFee = findViewById(R.id.rowServiceFee);
         tvTotal = findViewById(R.id.tvTotal);
         tvShippingAddress = findViewById(R.id.tvShippingAddress);
+        tvShippingVehicle = findViewById(R.id.tvShippingVehicle);
         tvTrackingNumber = findViewById(R.id.tvTrackingNumber);
         tvRecipientName = findViewById(R.id.tvRecipientName);
         tvRecipientPhone = findViewById(R.id.tvRecipientPhone);
@@ -198,11 +202,11 @@ public class OrderDetailActivity extends AppCompatActivity {
         layout.setPadding(48, 24, 48, 8);
 
         android.widget.EditText etCourier = new android.widget.EditText(this);
-        etCourier.setHint("Nama Kurir (JNE, JNT, dll)");
+        etCourier.setHint("Nama Driver (Gojek, Indriver, Grab, Dll)");
         layout.addView(etCourier);
 
         android.widget.EditText etTracking = new android.widget.EditText(this);
-        etTracking.setHint("Nomor Resi");
+        etTracking.setHint("Plat Nomor");
         layout.addView(etTracking);
 
         com.google.android.material.button.MaterialButton btnPickImage =
@@ -365,7 +369,10 @@ public class OrderDetailActivity extends AppCompatActivity {
             }
             android.util.Log.d("Dispute", "currentSellerId = " + currentSellerId + ", name = " + currentSellerName);
         }
-        tvOrderId.setText("#INV-" + String.format("%05d", txId));
+        String txNum = (order.containsKey("transaction_number") && order.get("transaction_number") != null && !String.valueOf(order.get("transaction_number")).trim().isEmpty())
+                ? String.valueOf(order.get("transaction_number"))
+                : "#INV-" + String.format("%05d", txId);
+        tvOrderId.setText(txNum);
 
         String status = String.valueOf(order.get("status"));
         tvStatus.setText(statusLabel(status));
@@ -405,12 +412,18 @@ public class OrderDetailActivity extends AppCompatActivity {
 
         // Pricing
         double discount = parseDouble(order.get("discount_total"));
+        double shippingCost = parseDouble(order.get("shipping_cost"));
         double serviceFee = parseDouble(order.get("service_fee"));
         double total = parseDouble(order.get("total_amount"));
 
         tvSubtotal.setText(formatRp(subtotal));
+        tvShippingCost.setText(formatRp(shippingCost));
         tvServiceFee.setText(formatRp(serviceFee));
         tvTotal.setText(formatRp(total));
+
+        if (rowServiceFee != null) {
+            rowServiceFee.setVisibility(isSeller ? View.VISIBLE : View.GONE);
+        }
 
         if (discount > 0) {
             rowDiscount.setVisibility(View.VISIBLE);
@@ -431,6 +444,24 @@ public class OrderDetailActivity extends AppCompatActivity {
         }
 
         tvShippingAddress.setText(safeString(order.get("shipping_address"), "-"));
+        
+        String vehicle = safeString(order.get("shipping_vehicle"), null);
+        if (vehicle != null && !vehicle.isEmpty()) {
+            String vehicleLabel = vehicle;
+            if ("motor".equals(vehicle)) {
+                vehicleLabel = "Kurir Motor";
+            } else if ("becak".equals(vehicle)) {
+                vehicleLabel = "Becak (Bentor)";
+            } else if ("pickup".equals(vehicle)) {
+                vehicleLabel = "Mobil Pickup";
+            } else if ("jemput_sendiri".equals(vehicle)) {
+                vehicleLabel = "Jemput Sendiri (Self-Pickup)";
+            }
+            tvShippingVehicle.setText(vehicleLabel);
+        } else {
+            tvShippingVehicle.setText("-");
+        }
+        
         tvTrackingNumber.setText(safeString(order.get("tracking_number"), "-"));
 
         // Proof image

@@ -92,5 +92,46 @@
             app:icon="@android:drawable/ic_menu_upload"
             android:visibility="gone" />
 
+        <!-- Button Refund -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnRefund"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Ajukan Refund"
+            android:textSize="13sp"
+            android:visibility="gone"
+            app:strokeColor="#F59E0B"
+            android:textColor="#F59E0B"
+            app:strokeWidth="1dp"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnLaporanMasalah"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="⚠️ Laporan Masalah"
+            android:textSize="13sp"
+            android:visibility="gone"
+            app:strokeColor="#EF4444"
+            app:strokeWidth="1dp"/>
+
+        <!-- Button khusus pengembalian barang (tampil saat dispute aktif) -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnReturnItem"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="📦 Kirim Barang Kembali"
+            android:textSize="13sp"
+            android:textColor="#FFFFFF"
+            android:visibility="gone"
+            app:backgroundTint="#10B981"
+            app:icon="@android:drawable/ic_menu_send"
+            app:iconTint="#FFFFFF"
+            app:iconGravity="textStart"/>
+
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

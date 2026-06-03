@@ -6,6 +6,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.bottomnavigation.BottomNavigationMenuView;
 import com.google.android.material.bottomnavigation.BottomNavigationItemView;
 
+@android.annotation.SuppressLint("RestrictedApi")
 public class NavigationUtils {
 
     /**

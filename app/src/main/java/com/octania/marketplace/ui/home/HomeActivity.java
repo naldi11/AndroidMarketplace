@@ -65,6 +65,9 @@ public class HomeActivity extends AppCompatActivity {
     private FusedLocationProviderClient fusedLocationClient;
     private Double currentLat = null;
     private Double currentLng = null;
+    private com.google.android.gms.location.LocationCallback locationCallback;
+    private Double lastLoadedLat = null;
+    private Double lastLoadedLng = null;
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1001;
 
@@ -79,11 +82,40 @@ public class HomeActivity extends AppCompatActivity {
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         actionHelper = new ProductActionHelper(this, sessionManager);
 
-        if (!sessionManager.isLoggedIn()) {
-            startActivity(new Intent(this, LoginActivity.class));
-            finish();
-            return;
-        }
+        locationCallback = new com.google.android.gms.location.LocationCallback() {
+            @Override
+            public void onLocationResult(@NonNull com.google.android.gms.location.LocationResult locationResult) {
+                if (locationResult.getLastLocation() == null) return;
+                
+                double lat = locationResult.getLastLocation().getLatitude();
+                double lng = locationResult.getLastLocation().getLongitude();
+                
+                boolean isFirstLocation = (currentLat == null || currentLng == null);
+                
+                currentLat = lat;
+                currentLng = lng;
+                
+                if (productAdapter != null) {
+                    productAdapter.updateUserLocation(currentLat, currentLng);
+                }
+                
+                if (isFirstLocation || lastLoadedLat == null || lastLoadedLng == null) {
+                    lastLoadedLat = lat;
+                    lastLoadedLng = lng;
+                    loadProducts();
+                } else {
+                    float[] results = new float[1];
+                    android.location.Location.distanceBetween(lastLoadedLat, lastLoadedLng, lat, lng, results);
+                    if (results[0] > 200) { // 200 meters
+                        lastLoadedLat = lat;
+                        lastLoadedLng = lng;
+                        loadProducts();
+                    }
+                }
+            }
+        };
+
+        // Guest browsing is allowed, so no immediate redirect on startup
 
         setupDistanceFilter();
         setupCategoryRecycler();
@@ -92,11 +124,17 @@ public class HomeActivity extends AppCompatActivity {
         setupSearch();
         setupBottomNav();
 
-//        binding.swipeRefresh.setColorSchemeResources(R.color.primary_orange);
-//        binding.swipeRefresh.setOnRefreshListener(this::fetchLocationAndProducts);
+        binding.swipeRefresh.setColorSchemeResources(R.color.primary_orange);
+        binding.swipeRefresh.setOnRefreshListener(this::fetchLocationAndProducts);
 
-        binding.btnNavCart.setOnClickListener(
-                v -> startActivity(new Intent(this, com.octania.marketplace.ui.cart.CartActivity.class)));
+        binding.btnNavCart.setOnClickListener(v -> {
+            if (!sessionManager.isLoggedIn()) {
+                Toast.makeText(this, "Silakan login terlebih dahulu", Toast.LENGTH_SHORT).show();
+                startActivity(new Intent(this, LoginActivity.class));
+                return;
+            }
+            startActivity(new Intent(this, com.octania.marketplace.ui.cart.CartActivity.class));
+        });
 
         binding.btnNavChat.setOnClickListener(v -> {
             if (!sessionManager.isLoggedIn()) {
@@ -198,6 +236,11 @@ public class HomeActivity extends AppCompatActivity {
         productAdapter = new ProductAdapter(this, new ProductAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(Product product) {
+                if (!sessionManager.isLoggedIn()) {
+                    Toast.makeText(HomeActivity.this, "Silakan login terlebih dahulu", Toast.LENGTH_SHORT).show();
+                    startActivity(new Intent(HomeActivity.this, LoginActivity.class));
+                    return;
+                }
                 Intent intent = new Intent(HomeActivity.this,
                         com.octania.marketplace.ui.product.ProductDetailActivity.class);
                 intent.putExtra(
@@ -335,7 +378,16 @@ public class HomeActivity extends AppCompatActivity {
             int id = item.getItemId();
             if (id == R.id.nav_home) {
                 return true;
-            } else if (id == R.id.nav_scan) {
+            }
+
+            // Guest guards for all other tabs
+            if (!sessionManager.isLoggedIn()) {
+                Toast.makeText(this, "Silakan login terlebih dahulu", Toast.LENGTH_SHORT).show();
+                startActivity(new Intent(this, LoginActivity.class));
+                return false;
+            }
+
+            if (id == R.id.nav_scan) {
                 showScanDialog();
                 return false; // Jangan seleksi item scan, biar FAB tetap menonjol
             } else if (id == R.id.nav_orders) {
@@ -404,6 +456,11 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void fetchVouchers() {
+        if (!sessionManager.isLoggedIn()) {
+            binding.rvVouchers.setVisibility(View.GONE);
+            binding.tvVoucherLabel.setVisibility(View.GONE);
+            return;
+        }
         String token = "Bearer " + sessionManager.getToken();
         apiService.getPublicVouchers(token).enqueue(new Callback<ApiResponse<List<Voucher>>>() {
             @Override
@@ -462,48 +519,47 @@ public class HomeActivity extends AppCompatActivity {
     private void fetchLocationAndProducts() {
         if (ActivityCompat.checkSelfPermission(this,
                 Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // Jika izin lokasi belum diberikan, tetap muat produk tanpa koordinat
             currentLat = null;
             currentLng = null;
-//    //        binding.swipeRefresh.setRefreshing(true);
             loadProducts();
-            // Opsional: tetap minta izin sekali, tapi tidak bergantung padanya untuk menampilkan produk
             ActivityCompat.requestPermissions(this,
                     new String[] { Manifest.permission.ACCESS_FINE_LOCATION },
                     LOCATION_PERMISSION_REQUEST_CODE);
             return;
         }
 
-//        binding.swipeRefresh.setRefreshing(true);
-        fusedLocationClient.requestLocationUpdates(
+        lastLoadedLat = null;
+        lastLoadedLng = null;
+        
+        startLocationUpdates();
+        loadProducts();
+    }
+
+    @SuppressWarnings("MissingPermission")
+    private void startLocationUpdates() {
+        if (ActivityCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+        com.google.android.gms.location.LocationRequest locationRequest = 
             com.google.android.gms.location.LocationRequest.create()
                 .setPriority(com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY)
-                .setInterval(500)
-                .setFastestInterval(250)
-                .setNumUpdates(1),
-            new com.google.android.gms.location.LocationCallback() {
-                @Override
-                public void onLocationResult(@NonNull com.google.android.gms.location.LocationResult locationResult) {
-                    if (locationResult.getLastLocation() != null) {
-                        currentLat = locationResult.getLastLocation().getLatitude();
-                        currentLng = locationResult.getLastLocation().getLongitude();
-                        Log.d("LOCATION_DEBUG", "Updated Location: " + currentLat + ", " + currentLng);
-                    } else {
-                        ToastManager.showToast(HomeActivity.this, "Gagal mendapatkan lokasi terbaru.");
-                    }
-                    loadProducts();
-                }
-            }, android.os.Looper.getMainLooper())
-            .addOnFailureListener(e -> {
-                ToastManager.showToast(this, "Lokasi tidak tersedia: " + e.getMessage());
-                loadProducts();
-            });
+                .setInterval(2000)
+                .setFastestInterval(1000);
+
+        fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, android.os.Looper.getMainLooper());
+    }
+
+    private void stopLocationUpdates() {
+        if (fusedLocationClient != null && locationCallback != null) {
+            fusedLocationClient.removeLocationUpdates(locationCallback);
+        }
     }
 
     @SuppressWarnings("unchecked")
     private void loadProducts() {
         String token = sessionManager.isLoggedIn() ? "Bearer " + sessionManager.getToken() : null;
-        Integer radius = (selectedDistance != null) ? selectedDistance : 100;
+        Integer radius = (selectedDistance != null) ? selectedDistance : (currentLat != null && currentLng != null ? 15 : 100);
         
         Log.d("API_DEBUG", "Fetching Products with: " +
                 "Lat=" + currentLat + 
@@ -515,7 +571,7 @@ public class HomeActivity extends AppCompatActivity {
                 .enqueue(new Callback<ApiResponse<Object>>() {
                     @Override
                     public void onResponse(Call<ApiResponse<Object>> call,
-                            Response<ApiResponse<Object>> response) {
+                             Response<ApiResponse<Object>> response) {
                         binding.swipeRefresh.setRefreshing(false);
                         if (response.isSuccessful() && response.body() != null) {
                             ApiResponse<Object> apiResponse = response.body();
@@ -545,22 +601,29 @@ public class HomeActivity extends AppCompatActivity {
                                     Log.d("HOME_DEBUG", "Products parsed: " + originalCount);
 
                                     if (products != null && !products.isEmpty()) {
-                                        // Filter by distance on client-side as double-check
-                                        if (selectedDistance != null && selectedDistance < 100) {
+                                        // Filter by distance on client-side
+                                        if (currentLat != null && currentLng != null) {
+                                            double maxDist = (selectedDistance != null) ? (double) selectedDistance : 15.0;
                                             List<Product> filtered = new ArrayList<>();
-                                            double maxDist = (double) selectedDistance;
                                             
                                             for (Product p : products) {
-                                                // Get distance from product (it's in KM)
                                                 Double dist = p.getDistanceKm();
                                                 
-                                                // If server doesn't provide distance, try to calculate if possible
+                                                // Failsafe: if dist is null but product has coordinates, calculate it client-side
+                                                if (dist == null && p.getLatitude() != null && p.getLongitude() != null) {
+                                                    float[] results = new float[1];
+                                                    android.location.Location.distanceBetween(
+                                                        currentLat, currentLng,
+                                                        p.getLatitude(), p.getLongitude(),
+                                                        results
+                                                    );
+                                                    dist = (double) (results[0] / 1000.0f); // Convert meters to KM
+                                                }
+
                                                 if (dist == null) {
-                                                    // Skip product if distance is unknown during active filtering
                                                     continue;
                                                 }
 
-                                                // Log for debugging
                                                 Log.d("DISTANCE_DEBUG", "Product: " + p.getName() + ", Distance: " + dist + " KM, Max: " + maxDist);
 
                                                 if (dist <= maxDist) {
@@ -584,15 +647,8 @@ public class HomeActivity extends AppCompatActivity {
 
                                         productAdapter.updateData(productsWithAds);
                                         binding.rvProducts.setVisibility(View.VISIBLE);
-                                        
-                                        if (selectedDistance != null && selectedDistance < 100) {
-                                            Toast.makeText(HomeActivity.this, "Ditemukan " + products.size() + " produk dalam " + selectedDistance + " KM", Toast.LENGTH_SHORT).show();
-                                        } else {
-                                            Toast.makeText(HomeActivity.this, "Berhasil memuat " + originalCount + " produk", Toast.LENGTH_SHORT).show();
-                                        }
                                     } else {
                                         productAdapter.updateData(new ArrayList<>());
-                                        Toast.makeText(HomeActivity.this, "Tidak ada produk ditemukan", Toast.LENGTH_SHORT).show();
                                     }
                                 } catch (Exception e) {
                                     Log.e("HOME_DEBUG", "Parsing error", e);
@@ -727,15 +783,30 @@ public class HomeActivity extends AppCompatActivity {
         // Reset bottom nav to Home when coming back
         binding.bottomNavInclude.bottomNav.setSelectedItemId(R.id.nav_home);
         com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(binding.bottomNavInclude.bottomNav);
-        fetchUserCounts();
-        // Update badge di bottom nav via BadgeUtils
-        com.octania.marketplace.utils.BadgeUtils.fetchAndApply(
-                this, sessionManager, binding.bottomNavInclude.bottomNav);
+
+        if (sessionManager.isLoggedIn()) {
+            fetchUserCounts();
+            // Update badge wishlist & cart
+            com.octania.marketplace.utils.BadgeUtils.fetchAndApply(
+                    this, sessionManager, binding.bottomNavInclude.bottomNav);
+            // Update badge dispute aktif di "Pesanan Saya"
+            String token = "Bearer " + sessionManager.getToken();
+            com.octania.marketplace.utils.BadgeUtils.fetchAndApplyDisputeBadge(
+                    this, token, binding.bottomNavInclude.bottomNav);
+        } else {
+            // Remove badges if guest
+            binding.bottomNavInclude.bottomNav.removeBadge(R.id.nav_wishlist);
+            binding.bottomNavInclude.bottomNav.removeBadge(R.id.nav_orders);
+        }
 
         // Always refresh products on resume to ensure data is current
-////        binding.swipeRefresh.setRefreshing(true);
-//        binding.swipeRefresh.postDelayed(this::fetchLocationAndProducts, 300);
         this.fetchLocationAndProducts();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        stopLocationUpdates();
     }
 
     @Override

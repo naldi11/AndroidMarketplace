@@ -50,6 +50,8 @@
         <com.google.android.material.tabs.TabItem android:text="Dikemas" />
         <com.google.android.material.tabs.TabItem android:text="Dikirim" />
         <com.google.android.material.tabs.TabItem android:text="Selesai" />
+        <com.google.android.material.tabs.TabItem android:text="Dibatalkan" />
+        <com.google.android.material.tabs.TabItem android:text="Refund" />
     </com.google.android.material.tabs.TabLayout>
 
     <!-- Order List -->

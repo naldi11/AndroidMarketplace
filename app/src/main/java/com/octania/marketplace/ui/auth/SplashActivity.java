@@ -18,6 +18,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.octania.marketplace.R;
 import com.octania.marketplace.databinding.ActivitySplashBinding;
 import com.octania.marketplace.ui.home.HomeActivity;
+import com.octania.marketplace.ui.home.GuestHomeActivity;
 import com.octania.marketplace.ui.seller.SellerDashboardActivity;
 import com.octania.marketplace.utils.SessionManager;
 
@@ -171,8 +172,8 @@ public class SplashActivity extends AppCompatActivity {
                 intent = new Intent(SplashActivity.this, HomeActivity.class);
             }
         } else {
-            // User not logged in, go to Login
-            intent = new Intent(SplashActivity.this, LoginActivity.class);
+            // User not logged in, go to GuestHomeActivity (guest browsing allowed, no bottom nav)
+            intent = new Intent(SplashActivity.this, GuestHomeActivity.class);
         }
 
         // Clear activity stack and start new activity
@@ -206,6 +207,7 @@ public class SplashActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
+        super.onBackPressed();
         // Prevent back press on splash screen
         // Do nothing or show exit confirmation
     }

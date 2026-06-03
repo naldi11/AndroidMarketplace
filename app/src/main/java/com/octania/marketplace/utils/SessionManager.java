@@ -13,6 +13,7 @@ public class SessionManager {
     private static final String KEY_ACTIVE_ROLE = "activeRole";
     private static final String KEY_WISHLIST_COUNT = "wishlistCount";
     private static final String KEY_CART_COUNT = "cartCount";
+    private static final String KEY_DISPUTE_COUNT = "disputeCount";
 
     public static final String KEY_NAME = "userName";
     public static final String KEY_EMAIL = "userEmail";
@@ -87,5 +88,14 @@ public class SessionManager {
 
     public int getCartCount() {
         return pref.getInt(KEY_CART_COUNT, 0);
+    }
+
+    public void saveDisputeCount(int disputeCount) {
+        editor.putInt(KEY_DISPUTE_COUNT, disputeCount);
+        editor.apply();
+    }
+
+    public int getDisputeCount() {
+        return pref.getInt(KEY_DISPUTE_COUNT, 0);
     }
 }

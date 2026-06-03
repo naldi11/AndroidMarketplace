@@ -31,6 +31,8 @@ public class ProductAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     private final List<Product> productList;
     private final List<com.octania.marketplace.data.model.ad.AdBanner> adBanners = new ArrayList<>();
     private final OnItemClickListener listener;
+    private Double currentLat = null;
+    private Double currentLng = null;
 
     public interface OnItemClickListener {
         void onItemClick(Product product);
@@ -64,6 +66,12 @@ public class ProductAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
     public void clearData() {
         this.productList.clear();
+        notifyDataSetChanged();
+    }
+
+    public void updateUserLocation(Double lat, Double lng) {
+        this.currentLat = lat;
+        this.currentLng = lng;
         notifyDataSetChanged();
     }
 
@@ -248,12 +256,23 @@ public class ProductAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
             // Distance — always show when available
             if (tvProductDistance != null) {
-                if (product.getDistanceKm() != null) {
-                    if (product.getDistanceKm() < 1.0) {
-                        tvProductDistance.setText("< 1 km");
+                Double dist = product.getDistanceKm();
+                if (currentLat != null && currentLng != null && product.getLatitude() != null && product.getLongitude() != null) {
+                    float[] results = new float[1];
+                    android.location.Location.distanceBetween(
+                        currentLat, currentLng,
+                        product.getLatitude(), product.getLongitude(),
+                        results
+                    );
+                    dist = (double) (results[0] / 1000.0f); // Convert meters to KM
+                }
+                if (dist != null) {
+                    if (dist < 1.0) {
+                        int meters = (int) Math.round(dist * 1000);
+                        tvProductDistance.setText(meters + " m");
                     } else {
                         tvProductDistance.setText(
-                                String.format("%.1f km", product.getDistanceKm()));
+                                String.format(java.util.Locale.US, "%.1f km", dist));
                     }
                     tvProductDistance.setVisibility(View.VISIBLE);
                 } else {

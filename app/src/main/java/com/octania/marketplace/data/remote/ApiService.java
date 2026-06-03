@@ -330,6 +330,10 @@ public interface ApiService {
                 @Header("Authorization") String token,
                 @retrofit2.http.Path("id") int disputeId);
 
+        @GET("seller/disputes")
+        Call<ApiResponse<java.util.List<com.octania.marketplace.data.model.Dispute>>> getSellerDisputes(
+                @Header("Authorization") String token);
+
 
         @FormUrlEncoded
         @POST("transactions/{id}/status")

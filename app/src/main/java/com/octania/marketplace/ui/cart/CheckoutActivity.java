@@ -66,6 +66,11 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
     private double shippingCost = 0;
     private double subtotal = 0;
     private String deliveryType = "courier";
+    private String shippingVehicle = "motor";
+    private final String[] vehicleOptions = {"Kurir Motor", "Becak (Bentor)", "Mobil Pickup", "Jemput Sendiri"};
+    private final String[] vehicleValues = {"motor", "becak", "pickup", "jemput_sendiri"};
+    private double lastTotalWeightKg = -1.0;
+    private boolean isUpdatingSpinner = false;
     private boolean isLoadingAddresses = false;
     private Double deviceLat = null;
     private Double deviceLng = null;
@@ -80,8 +85,12 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        android.content.SharedPreferences prefs = getSharedPreferences("osmdroid", 0);
+        org.osmdroid.config.Configuration.getInstance().load(getApplicationContext(), prefs);
+        
         binding = ActivityCheckoutBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        binding.rowServiceFee.setVisibility(View.GONE);
 
         setSupportActionBar(binding.toolbar);
         if (getSupportActionBar() != null) {
@@ -91,6 +100,10 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
         sessionManager = new SessionManager(this);
         apiService = ApiClient.getClient().create(ApiService.class);
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+
+        binding.mapPreview.setTileSource(org.osmdroid.tileprovider.tilesource.TileSourceFactory.MAPNIK);
+        binding.mapPreview.setMultiTouchControls(false);
+        binding.mapPreview.getZoomController().setVisibility(org.osmdroid.views.CustomZoomButtonsController.Visibility.NEVER);
 
         // Capture device GPS for shipping calculation fallback
         if (ActivityCompat.checkSelfPermission(this,
@@ -134,8 +147,57 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
         binding.btnPlaceOrder.setOnClickListener(v -> processCheckout());
         binding.btnSelectVoucher.setOnClickListener(v -> showVoucherSelection());
 
-        // Shipping options and payment methods UI removed as requested.
-        // Delivery type and payment method selection handled in background logic.
+        // Initialize shipping vehicle spinner
+        binding.spinnerShippingVehicle.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+                if (isUpdatingSpinner) return;
+                String selected = vehicleValues[position];
+                
+                // Get current total weight
+                double totalWeightGrams = 0;
+                for (CartItem item : cartItems) {
+                    if (item.getProduct() != null && item.getProduct().getWeight() != null) {
+                        totalWeightGrams += item.getProduct().getWeight() * item.getQuantity();
+                    }
+                }
+                double totalWeightKg = totalWeightGrams / 1000.0;
+                
+                boolean isEnabled = true;
+                if ("motor".equals(selected) && totalWeightKg > 25) isEnabled = false;
+                if ("becak".equals(selected) && totalWeightKg > 100) isEnabled = false;
+                if ("pickup".equals(selected) && totalWeightKg > 1000) isEnabled = false;
+                
+                if (!isEnabled) {
+                    // Force select recommended index
+                    String recommended = getRecommendedVehicle(totalWeightKg);
+                    int recIndex = 0;
+                    for (int i = 0; i < vehicleValues.length; i++) {
+                        if (vehicleValues[i].equals(recommended)) {
+                            recIndex = i;
+                            break;
+                        }
+                    }
+                    binding.spinnerShippingVehicle.setSelection(recIndex);
+                    Toast.makeText(CheckoutActivity.this, "Opsi pengiriman tersebut melebihi kapasitas berat barang!", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                
+                if (!selected.equals(shippingVehicle)) {
+                    shippingVehicle = selected;
+                    if ("jemput_sendiri".equals(shippingVehicle)) {
+                        deliveryType = "pickup";
+                    } else {
+                        deliveryType = "courier";
+                    }
+                    calculateTotal();
+                }
+            }
+
+            @Override
+            public void onNothingSelected(android.widget.AdapterView<?> parent) {
+            }
+        });
 
 
 
@@ -277,6 +339,7 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
         }
 
         body.put("delivery_type", deliveryType);
+        body.put("shipping_vehicle", shippingVehicle);
         if (selectedAddressId != -1) {
             body.put("user_address_id", selectedAddressId);
         }
@@ -290,6 +353,58 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
         }
         if (selectedUserVoucherId != -1) {
             body.put("user_voucher_id", selectedUserVoucherId);
+        }
+
+        // Calculate and display weight warning
+        double totalWeightGrams = 0;
+        for (CartItem item : cartItems) {
+            if (item.getProduct() != null && item.getProduct().getWeight() != null) {
+                totalWeightGrams += item.getProduct().getWeight() * item.getQuantity();
+            }
+        }
+        double totalWeightKg = totalWeightGrams / 1000.0;
+        
+        // Only update spinner adapter if weight actually changed
+        if (totalWeightKg != lastTotalWeightKg) {
+            lastTotalWeightKg = totalWeightKg;
+            updateVehicleSpinnerAdapter(totalWeightKg);
+        }
+
+        String recommendedLabel = "";
+        String recommendedVal = getRecommendedVehicle(totalWeightKg);
+        if ("motor".equals(recommendedVal)) {
+            recommendedLabel = "Kurir Motor";
+        } else if ("becak".equals(recommendedVal)) {
+            recommendedLabel = "Becak (Bentor)";
+        } else if ("pickup".equals(recommendedVal)) {
+            recommendedLabel = "Mobil Pickup";
+        } else {
+            recommendedLabel = "Jemput Sendiri";
+        }
+
+        if (totalWeightKg > 25) {
+            binding.tvShippingWarning.setVisibility(View.VISIBLE);
+            binding.tvShippingWarning.setTextColor(Color.RED);
+            String warningMsg = String.format(Locale.getDefault(),
+                    "Total berat barang: %.1f kg.\nOpsi Kurir Motor dinonaktifkan (kapasitas maks 25 kg). Disarankan menggunakan %s.",
+                    totalWeightKg, recommendedLabel);
+            if (totalWeightKg > 100) {
+                warningMsg = String.format(Locale.getDefault(),
+                        "Total berat barang: %.1f kg.\nOpsi Kurir Motor & Becak dinonaktifkan (kapasitas maks 100 kg). Disarankan menggunakan %s.",
+                        totalWeightKg, recommendedLabel);
+            }
+            if (totalWeightKg > 1000) {
+                warningMsg = String.format(Locale.getDefault(),
+                        "Total berat barang: %.1f kg.\nOpsi Kurir Motor, Becak & Pickup dinonaktifkan (kapasitas maks 1000 kg). Wajib menggunakan %s.",
+                        totalWeightKg, recommendedLabel);
+            }
+            binding.tvShippingWarning.setText(warningMsg);
+        } else {
+            binding.tvShippingWarning.setVisibility(View.VISIBLE);
+            binding.tvShippingWarning.setTextColor(Color.parseColor("#4CAF50")); // Green color
+            binding.tvShippingWarning.setText(String.format(Locale.getDefault(),
+                    "Total berat barang: %.1f kg. (Kapasitas Kurir Motor aman). Pilihan disarankan: %s.",
+                    totalWeightKg, recommendedLabel));
         }
 
         binding.btnPlaceOrder.setEnabled(false);
@@ -325,6 +440,85 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
 
                             binding.tvSubtotal.setText(String.format("Rp %,.0f", subtotal));
                             binding.tvServiceFee.setText(String.format("Rp %,.0f", serviceFee));
+                            binding.tvShippingCost.setText(String.format("Rp %,.0f", shippingCost));
+                            binding.tvShippingCostDetail.setText(String.format("Estimasi Ongkir: Rp %,.0f", shippingCost));
+
+                            if (data.containsKey("distance_km") && data.get("distance_km") != null &&
+                                    data.containsKey("buyer_latitude") && data.get("buyer_latitude") != null &&
+                                    data.containsKey("buyer_longitude") && data.get("buyer_longitude") != null &&
+                                    data.containsKey("seller_latitude") && data.get("seller_latitude") != null &&
+                                    data.containsKey("seller_longitude") && data.get("seller_longitude") != null) {
+                                
+                                double dist = ((Number) data.get("distance_km")).doubleValue();
+                                double buyerLat = ((Number) data.get("buyer_latitude")).doubleValue();
+                                double buyerLng = ((Number) data.get("buyer_longitude")).doubleValue();
+                                double sellerLat = ((Number) data.get("seller_latitude")).doubleValue();
+                                double sellerLng = ((Number) data.get("seller_longitude")).doubleValue();
+
+                                binding.cardDistancePreview.setVisibility(View.VISIBLE);
+                                
+                                int durationMinutes = 0;
+                                if (data.containsKey("duration_seconds") && data.get("duration_seconds") != null) {
+                                    double seconds = ((Number) data.get("duration_seconds")).doubleValue();
+                                    durationMinutes = (int) Math.round(seconds / 60.0);
+                                } else {
+                                    durationMinutes = (int) Math.round(dist * 2.0);
+                                }
+                                if (durationMinutes < 1) durationMinutes = 1;
+                                
+                                binding.tvDurationPreview.setText(durationMinutes + " mnt");
+                                binding.tvDistancePreview.setText(String.format(new Locale("in", "ID"), "(%.1f km)", dist));
+
+                                binding.mapPreview.getOverlays().clear();
+
+                                org.osmdroid.util.GeoPoint buyerPoint = new org.osmdroid.util.GeoPoint(buyerLat, buyerLng);
+                                org.osmdroid.views.overlay.Marker buyerMarker = new org.osmdroid.views.overlay.Marker(binding.mapPreview);
+                                buyerMarker.setPosition(buyerPoint);
+                                buyerMarker.setTitle("Lokasi Anda");
+                                buyerMarker.setAnchor(org.osmdroid.views.overlay.Marker.ANCHOR_CENTER, org.osmdroid.views.overlay.Marker.ANCHOR_BOTTOM);
+                                binding.mapPreview.getOverlays().add(buyerMarker);
+
+                                org.osmdroid.util.GeoPoint sellerPoint = new org.osmdroid.util.GeoPoint(sellerLat, sellerLng);
+                                org.osmdroid.views.overlay.Marker sellerMarker = new org.osmdroid.views.overlay.Marker(binding.mapPreview);
+                                sellerMarker.setPosition(sellerPoint);
+                                sellerMarker.setTitle("Lokasi Penjual");
+                                sellerMarker.setAnchor(org.osmdroid.views.overlay.Marker.ANCHOR_CENTER, org.osmdroid.views.overlay.Marker.ANCHOR_BOTTOM);
+                                binding.mapPreview.getOverlays().add(sellerMarker);
+
+                                java.util.List<org.osmdroid.util.GeoPoint> pts = new java.util.ArrayList<>();
+                                List<Map<String, Object>> shapeList = null;
+                                if (data.containsKey("route_shape") && data.get("route_shape") instanceof List) {
+                                    shapeList = (List<Map<String, Object>>) data.get("route_shape");
+                                }
+
+                                if (shapeList != null && !shapeList.isEmpty()) {
+                                    for (Map<String, Object> pt : shapeList) {
+                                        double pLat = ((Number) pt.get("lat")).doubleValue();
+                                        double pLng = ((Number) pt.get("lng")).doubleValue();
+                                        pts.add(new org.osmdroid.util.GeoPoint(pLat, pLng));
+                                    }
+                                } else {
+                                    pts.add(buyerPoint);
+                                    pts.add(sellerPoint);
+                                }
+
+                                org.osmdroid.views.overlay.Polyline line = new org.osmdroid.views.overlay.Polyline();
+                                line.setPoints(pts);
+                                line.setColor(android.graphics.Color.BLUE);
+                                line.setWidth(6.0f);
+                                binding.mapPreview.getOverlays().add(line);
+
+                                binding.mapPreview.invalidate();
+
+                                binding.mapPreview.post(() -> {
+                                    try {
+                                        org.osmdroid.util.BoundingBox box = org.osmdroid.util.BoundingBox.fromGeoPoints(pts);
+                                        binding.mapPreview.zoomToBoundingBox(box, true, 80);
+                                    } catch (Exception ignored) {}
+                                });
+                            } else {
+                                binding.cardDistancePreview.setVisibility(View.GONE);
+                            }
                             
                             // UI for Admin Fee and Shipping Cost removed from layout as requested.
                             // Values are still used for total calculation.
@@ -714,6 +908,7 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
         body.put("user_address_id", selectedAddressId);
         body.put("payment_method_id", paymentMethodId);
         body.put("delivery_type", deliveryType);
+        body.put("shipping_vehicle", shippingVehicle);
         // Send buyer coordinates for shipping calculation
         // Priority: selected address coordinates > device GPS
         Double cBuyerLat = (selectedAddressLat != null) ? selectedAddressLat : deviceLat;
@@ -841,6 +1036,137 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
         });
 
         bottomSheet.show();
+    }
+
+    private String getRecommendedVehicle(double weightKg) {
+        if (weightKg <= 25) {
+            return "motor";
+        } else if (weightKg <= 100) {
+            return "becak";
+        } else if (weightKg <= 1000) {
+            return "pickup";
+        } else {
+            return "jemput_sendiri";
+        }
+    }
+
+    private void updateVehicleSpinnerAdapter(double totalWeightKg) {
+        String recommendedValue = getRecommendedVehicle(totalWeightKg);
+        String[] dynamicOptions = new String[vehicleOptions.length];
+        
+        for (int i = 0; i < vehicleOptions.length; i++) {
+            String val = vehicleValues[i];
+            String name = vehicleOptions[i];
+            
+            if ("motor".equals(val)) {
+                if (totalWeightKg > 25) {
+                    name += " (Maks 25kg - Dinonaktifkan)";
+                } else if ("motor".equals(recommendedValue)) {
+                    name += " (Disarankan)";
+                }
+            } else if ("becak".equals(val)) {
+                if (totalWeightKg > 100) {
+                    name += " (Maks 100kg - Dinonaktifkan)";
+                } else if ("becak".equals(recommendedValue)) {
+                    name += " (Disarankan)";
+                }
+            } else if ("pickup".equals(val)) {
+                if (totalWeightKg > 1000) {
+                    name += " (Maks 1000kg - Dinonaktifkan)";
+                } else if ("pickup".equals(recommendedValue)) {
+                    name += " (Disarankan)";
+                }
+            } else if ("jemput_sendiri".equals(val)) {
+                if ("jemput_sendiri".equals(recommendedValue)) {
+                    name += " (Disarankan)";
+                }
+            }
+            dynamicOptions[i] = name;
+        }
+        
+        int currentIndex = binding.spinnerShippingVehicle.getSelectedItemPosition();
+        
+        isUpdatingSpinner = true;
+        VehicleSpinnerAdapter adapter = new VehicleSpinnerAdapter(this, dynamicOptions, totalWeightKg);
+        binding.spinnerShippingVehicle.setAdapter(adapter);
+        
+        int targetPosition = -1;
+        if (currentIndex >= 0 && currentIndex < vehicleValues.length) {
+            String currentVal = vehicleValues[currentIndex];
+            if (totalWeightKg > 25 && "motor".equals(currentVal)) {
+                // Disabled
+            } else if (totalWeightKg > 100 && "becak".equals(currentVal)) {
+                // Disabled
+            } else if (totalWeightKg > 1000 && "pickup".equals(currentVal)) {
+                // Disabled
+            } else {
+                targetPosition = currentIndex;
+                shippingVehicle = currentVal;
+                if ("jemput_sendiri".equals(shippingVehicle)) {
+                    deliveryType = "pickup";
+                } else {
+                    deliveryType = "courier";
+                }
+            }
+        }
+        
+        if (targetPosition == -1) {
+            for (int i = 0; i < vehicleValues.length; i++) {
+                if (vehicleValues[i].equals(recommendedValue)) {
+                    targetPosition = i;
+                    shippingVehicle = recommendedValue;
+                    if ("jemput_sendiri".equals(shippingVehicle)) {
+                        deliveryType = "pickup";
+                    } else {
+                        deliveryType = "courier";
+                    }
+                    break;
+                }
+            }
+        }
+        
+        if (targetPosition != -1) {
+            binding.spinnerShippingVehicle.setSelection(targetPosition);
+        }
+        
+        binding.spinnerShippingVehicle.post(() -> isUpdatingSpinner = false);
+    }
+
+    private class VehicleSpinnerAdapter extends ArrayAdapter<String> {
+        private final double totalWeightKg;
+
+        public VehicleSpinnerAdapter(android.content.Context context, String[] objects, double totalWeightKg) {
+            super(context, android.R.layout.simple_spinner_item, objects);
+            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            this.totalWeightKg = totalWeightKg;
+        }
+
+        @Override
+        public boolean isEnabled(int position) {
+            String val = vehicleValues[position];
+            if ("motor".equals(val) && totalWeightKg > 25) {
+                return false;
+            }
+            if ("becak".equals(val) && totalWeightKg > 100) {
+                return false;
+            }
+            if ("pickup".equals(val) && totalWeightKg > 1000) {
+                return false;
+            }
+            return true;
+        }
+
+        @Override
+        public View getDropDownView(int position, View convertView, android.view.ViewGroup parent) {
+            View view = super.getDropDownView(position, convertView, parent);
+            android.widget.TextView tv = (android.widget.TextView) view.findViewById(android.R.id.text1);
+            if (!isEnabled(position)) {
+                tv.setTextColor(Color.GRAY);
+            } else {
+                tv.setTextColor(Color.BLACK);
+            }
+            return view;
+        }
     }
 
     private String formatRupiah(double amount) {

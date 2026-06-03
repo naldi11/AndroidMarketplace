@@ -57,7 +57,11 @@ public class WalletPaymentActivity extends AppCompatActivity {
 
         // Tampilkan jumlah tagihan
         binding.tvPayAmount.setText(String.format("Rp %,.0f", amount));
-        binding.tvTransactionId.setText("ID Pesanan: " + transactionId);
+        String txNumber = getIntent().getStringExtra("transaction_number");
+        if (txNumber == null || txNumber.isEmpty() || "null".equals(txNumber)) {
+            txNumber = "#" + transactionId;
+        }
+        binding.tvTransactionId.setText(txNumber);
 
         // Muat saldo wallet
         loadWalletBalance();

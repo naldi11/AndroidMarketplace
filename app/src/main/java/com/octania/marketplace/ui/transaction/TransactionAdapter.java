@@ -1,6 +1,7 @@
 package com.octania.marketplace.ui.transaction;
 
 import android.content.Context;
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -8,8 +9,10 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.button.MaterialButton;
 import com.octania.marketplace.data.model.Transaction;
 import com.octania.marketplace.databinding.ItemTransactionBinding;
+import com.octania.marketplace.ui.dispute.DisputeDetailActivity;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -128,35 +131,88 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
                 binding.tvTransactionStatus.setBackgroundColor(android.graphics.Color.parseColor("#E8F5E9"));
             }
 
-            // Format date string
-            String dateStr = transaction.getCreatedAt();
-            if (dateStr != null) {
-                try {
-                    SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'",
-                            Locale.getDefault());
-                    Date date = inputFormat.parse(dateStr);
-                    if (date != null) {
-                        SimpleDateFormat outputFormat = new SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault());
-                        binding.tvTransactionDate.setText(outputFormat.format(date));
-                    }
-                } catch (ParseException e) {
-                    try {
-                        // Fallback format
-                        SimpleDateFormat altFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'",
-                                Locale.getDefault());
-                        Date date = altFormat.parse(dateStr);
-                        if (date != null) {
-                            SimpleDateFormat outputFormat = new SimpleDateFormat("dd MMM yyyy HH:mm",
-                                    Locale.getDefault());
-                            binding.tvTransactionDate.setText(outputFormat.format(date));
-                        }
-                    } catch (ParseException ex) {
-                        binding.tvTransactionDate.setText(dateStr);
-                    }
-                }
-            } else {
-                binding.tvTransactionDate.setText("-");
+            // Format date string — parse UTC, tampilkan WIB
+            binding.tvTransactionDate.setText(formatWIBDate(transaction.getCreatedAt()));
+
+            MaterialButton btnLaporan = binding.btnLaporanMasalah;
+            MaterialButton btnReturn  = binding.btnReturnItem;
+            MaterialButton btnRefund  = binding.btnRefund;
+            String txStatus = transaction.getStatus();
+
+            // Reset dulu (Laporan Masalah dan Return disembunyikan secara default kecuali ada kondisi khusus)
+            btnLaporan.setVisibility(View.GONE);
+            btnReturn.setVisibility(View.GONE);
+            
+            // Refund button always visible
+            btnRefund.setVisibility(View.VISIBLE);
+            btnRefund.setOnClickListener(v -> {
+                Intent i = new Intent(context, DisputeDetailActivity.class);
+                i.putExtra(DisputeDetailActivity.EXTRA_TRANSACTION_ID, transaction.getId());
+                context.startActivity(i);
+            });
+
+            if ("shipped".equals(txStatus) || "received".equals(txStatus)) {
+                // Bisa buka laporan masalah
+                btnLaporan.setVisibility(View.VISIBLE);
+                btnLaporan.setText("⚠️ Buka Laporan Masalah");
+                btnLaporan.setOnClickListener(v -> {
+                    Intent i = new Intent(context, DisputeDetailActivity.class);
+                    i.putExtra(DisputeDetailActivity.EXTRA_TRANSACTION_ID, transaction.getId());
+                    context.startActivity(i);
+                });
+            } else if ("disputed".equals(txStatus)) {
+                // Laporan aktif — tampil dua tombol
+                btnLaporan.setVisibility(View.VISIBLE);
+                btnLaporan.setText("📋 Lihat Status Laporan");
+                btnLaporan.setOnClickListener(v -> {
+                    Intent i = new Intent(context, DisputeDetailActivity.class);
+                    i.putExtra(DisputeDetailActivity.EXTRA_TRANSACTION_ID, transaction.getId());
+                    context.startActivity(i);
+                });
+
+                btnReturn.setVisibility(View.VISIBLE);
+                btnReturn.setText("📦 Kirim Barang Kembali");
+                btnReturn.setOnClickListener(v -> {
+                    Intent i = new Intent(context, DisputeDetailActivity.class);
+                    i.putExtra(DisputeDetailActivity.EXTRA_TRANSACTION_ID, transaction.getId());
+                    context.startActivity(i);
+                });
+
+            } else if ("disputed_refunded".equals(txStatus)) {
+                // Refund selesai
+                btnLaporan.setVisibility(View.VISIBLE);
+                btnLaporan.setText("✅ Refund Selesai — Lihat Detail");
+                btnLaporan.setOnClickListener(v -> {
+                    Intent i = new Intent(context, DisputeDetailActivity.class);
+                    i.putExtra(DisputeDetailActivity.EXTRA_TRANSACTION_ID, transaction.getId());
+                    context.startActivity(i);
+                });
             }
         }
+    }
+
+    /** Parse timestamp ISO 8601 (UTC) dan tampilkan dalam WIB */
+    private static String formatWIBDate(String raw) {
+        if (raw == null || raw.isEmpty()) return "-";
+        java.text.SimpleDateFormat out = new java.text.SimpleDateFormat("dd MMM yyyy, HH:mm", java.util.Locale.getDefault());
+        out.setTimeZone(java.util.TimeZone.getTimeZone("Asia/Jakarta"));
+        String[] formats = {
+            "yyyy-MM-dd'T'HH:mm:ss.SSSSSSXXX",
+            "yyyy-MM-dd'T'HH:mm:ssXXX",
+            "yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'",
+            "yyyy-MM-dd'T'HH:mm:ss'Z'",
+            "yyyy-MM-dd HH:mm:ss"
+        };
+        for (String fmt : formats) {
+            try {
+                java.text.SimpleDateFormat in = new java.text.SimpleDateFormat(fmt, java.util.Locale.US);
+                if (fmt.endsWith("'Z'") || fmt.endsWith("HH:mm:ss")) {
+                    in.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+                }
+                java.util.Date d = in.parse(raw);
+                if (d != null) return out.format(d);
+            } catch (Exception ignored) {}
+        }
+        return raw;
     }
 }

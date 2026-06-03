@@ -1,12 +1,22 @@
 package com.octania.marketplace.ui.chat;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.google.android.material.button.MaterialButton;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import com.octania.marketplace.data.model.Dispute;
+import com.octania.marketplace.data.model.Transaction;
+import com.octania.marketplace.ui.dispute.DisputeDetailActivity;
+import com.octania.marketplace.ui.transaction.TransactionActivity;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -20,6 +30,8 @@ import com.octania.marketplace.data.model.Message;
 import com.octania.marketplace.data.remote.ApiClient;
 import com.octania.marketplace.data.remote.ApiService;
 import com.octania.marketplace.utils.SessionManager;
+
+import androidx.annotation.NonNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,11 +55,16 @@ public class ChatActivity extends AppCompatActivity {
     private EditText etMessage;
     private View btnSend;
 
+    private LinearLayout bannerDispute;
+    private MaterialButton btnBannerAction;
+    private TextView tvBannerTitle, tvBannerDesc;
+    private int activeDisputeTransactionId = -1;
+
     private ApiService apiService;
     private SessionManager sessionManager;
     private Handler pollingHandler = new Handler();
     private Runnable pollingRunnable;
-    private static final int POLL_INTERVAL = 3000; // 3 seconds
+    private static final int POLL_INTERVAL = 3000;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -93,6 +110,10 @@ public class ChatActivity extends AppCompatActivity {
         rvMessages = findViewById(R.id.rvMessages);
         etMessage = findViewById(R.id.etMessage);
         btnSend = findViewById(R.id.btnSend);
+        bannerDispute = findViewById(R.id.bannerDispute);
+        btnBannerAction = findViewById(R.id.btnBannerAction);
+        tvBannerTitle = findViewById(R.id.tvBannerTitle);
+        tvBannerDesc = findViewById(R.id.tvBannerDesc);
 
         btnSend.setOnClickListener(v -> sendMessage());
         
@@ -125,11 +146,11 @@ public class ChatActivity extends AppCompatActivity {
                 if (response.isSuccessful() && response.body() != null) {
                     List<Message> newMessages = response.body().getData();
                     if (newMessages != null) {
-                        // Always update if forced (after send), or only if count changed during polling
                         if (forceRefresh || newMessages.size() != adapter.getItemCount()) {
                             adapter.updateMessages(newMessages);
                             rvMessages.scrollToPosition(newMessages.size() - 1);
                         }
+                        checkDisputeBanner(newMessages);
                     }
                 }
             }
@@ -208,6 +229,106 @@ public class ChatActivity extends AppCompatActivity {
             }
         };
         pollingHandler.postDelayed(pollingRunnable, POLL_INTERVAL);
+    }
+
+    /** Tampilkan banner jika ada pesan Admin dalam chat — fetch dispute untuk tahu status */
+    private void checkDisputeBanner(List<Message> messages) {
+        boolean hasAdminMessage = false;
+        int disputeTransactionId = -1;
+
+        for (Message msg : messages) {
+            if (msg.getMessage() != null && msg.getMessage().startsWith("[Admin]")) {
+                hasAdminMessage = true;
+            }
+            // Cari transaction ID dari pesan laporan: "pesanan #9"
+            if (msg.getMessage() != null && msg.getMessage().contains("pesanan #")) {
+                try {
+                    String part = msg.getMessage().split("pesanan #")[1].split("[^0-9]")[0];
+                    disputeTransactionId = Integer.parseInt(part);
+                } catch (Exception ignored) {}
+            }
+        }
+
+        if (!hasAdminMessage || bannerDispute == null) return;
+
+        final int txId = disputeTransactionId;
+
+        if (txId > 0) {
+            // Fetch dispute status untuk tampilkan info yang tepat
+            String token = "Bearer " + sessionManager.getToken();
+            apiService.getDispute(token, txId).enqueue(new Callback<ApiResponse<Object>>() {
+                @Override
+                public void onResponse(Call<ApiResponse<Object>> call,
+                                       Response<ApiResponse<Object>> response) {
+                    if (response.isSuccessful() && response.body() != null && response.body().getData() != null) {
+                        Gson gson = new Gson();
+                        Dispute d = gson.fromJson(gson.toJson(response.body().getData()), Dispute.class);
+                        runOnUiThread(() -> showBannerForStatus(d, txId));
+                    } else {
+                        runOnUiThread(() -> showGenericBanner(txId));
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<ApiResponse<Object>> call, Throwable t) {
+                    runOnUiThread(() -> showGenericBanner(txId));
+                }
+            });
+        } else {
+            showGenericBanner(-1);
+        }
+    }
+
+    private void showBannerForStatus(Dispute d, int txId) {
+        if (bannerDispute == null) return;
+        bannerDispute.setVisibility(View.VISIBLE);
+        activeDisputeTransactionId = txId;
+
+        String status = d != null && d.getStatus() != null ? d.getStatus() : "";
+        switch (status) {
+            case "buyer_won":
+                tvBannerTitle.setText("✅ Kamu menang laporan!");
+                tvBannerDesc.setText("Segera kirim barang kembali ke penjual dan input nomor driver.");
+                btnBannerAction.setText("Kirim Balik Sekarang");
+                bannerDispute.setBackgroundColor(0xFFD1FAE5);
+                tvBannerTitle.setTextColor(0xFF065F46);
+                tvBannerDesc.setTextColor(0xFF065F46);
+                break;
+            case "buyer_shipping_back":
+                tvBannerTitle.setText("📦 Barang dalam pengiriman");
+                tvBannerDesc.setText("Menunggu konfirmasi penjual. Dana akan otomatis dikembalikan.");
+                btnBannerAction.setText("Lihat Status");
+                break;
+            case "refunded":
+                tvBannerTitle.setText("💰 Refund berhasil!");
+                tvBannerDesc.setText("Dana sudah masuk ke saldo MeyPay kamu.");
+                btnBannerAction.setText("Lihat Detail");
+                bannerDispute.setBackgroundColor(0xFFD1FAE5);
+                tvBannerTitle.setTextColor(0xFF065F46);
+                tvBannerDesc.setTextColor(0xFF065F46);
+                break;
+            default:
+                tvBannerTitle.setText("⚠️ Ada Laporan Masalah Aktif");
+                tvBannerDesc.setText("Ketuk untuk melihat status laporan.");
+                btnBannerAction.setText("Lihat");
+                break;
+        }
+
+        btnBannerAction.setOnClickListener(v -> {
+            Intent intent = new Intent(this, DisputeDetailActivity.class);
+            intent.putExtra(DisputeDetailActivity.EXTRA_TRANSACTION_ID, txId);
+            startActivity(intent);
+        });
+    }
+
+    private void showGenericBanner(int txId) {
+        if (bannerDispute == null) return;
+        bannerDispute.setVisibility(View.VISIBLE);
+        tvBannerTitle.setText("⚠️ Ada Laporan Masalah");
+        tvBannerDesc.setText("Ketuk untuk melihat pesanan dan status laporan.");
+        btnBannerAction.setText("Lihat Pesanan");
+        btnBannerAction.setOnClickListener(v ->
+            startActivity(new Intent(this, TransactionActivity.class)));
     }
 
     @Override

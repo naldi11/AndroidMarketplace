@@ -44,12 +44,16 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <FrameLayout android:layout_width="wrap_content" android:layout_height="wrap_content">
-                <ImageView android:id="@+id/btnNavCart" android:layout_width="28dp" android:layout_height="28dp" android:src="@drawable/ic_cart" app:tint="@color/white" />
-                <TextView android:id="@+id/tvCartBadge" android:layout_width="18dp" android:layout_height="18dp" android:layout_gravity="top|end" android:layout_marginTop="-5dp" android:layout_marginEnd="-5dp" android:background="@drawable/bg_badge_red" android:gravity="center" android:text="0" android:textColor="@color/white" android:textSize="10sp" android:textStyle="bold" android:visibility="gone" />
-            </FrameLayout>
-
-            <ImageView android:id="@+id/btnNavChat" android:layout_width="28dp" android:layout_height="28dp" android:layout_marginStart="14dp" android:src="@drawable/ic_chat" app:tint="@color/white" />
+            <TextView
+                android:id="@+id/btnHeaderLogin"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:text="Masuk"
+                android:textColor="@color/white"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:padding="8dp" />
         </LinearLayout>
 
         <!-- ========== SCROLL CONTENT (WITH REFRESH) ========== -->
@@ -58,7 +62,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_below="@id/headerLayout"
-            android:layout_above="@id/bottomNavContainer">
+            android:layout_alignParentBottom="true">
 
             <androidx.core.widget.NestedScrollView
                 android:id="@+id/mainScrollView"
@@ -68,6 +72,60 @@
 
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
                     
+                    <!-- Banner Seller Login -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/cardSellerBanner"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="16dp"
+                        android:layout_marginTop="16dp"
+                        android:layout_marginBottom="8dp"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="2dp"
+                        app:strokeColor="@color/primary_orange"
+                        app:strokeWidth="1dp"
+                        app:cardBackgroundColor="#FFF8F5">
+                        <RelativeLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:padding="16dp">
+                            <LinearLayout
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:layout_toStartOf="@id/btnSellerLogin"
+                                android:layout_alignParentStart="true"
+                                android:layout_centerVertical="true">
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Ingin Mulai Jualan?"
+                                    android:textColor="@color/text_dark"
+                                    android:textStyle="bold"
+                                    android:textSize="15sp"/>
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Masuk atau daftar sebagai penjual"
+                                    android:textColor="@color/grey_inactive"
+                                    android:textSize="12sp"
+                                    android:layout_marginTop="2dp"/>
+                            </LinearLayout>
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnSellerLogin"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_alignParentEnd="true"
+                                android:layout_centerVertical="true"
+                                android:text="Masuk"
+                                android:textSize="12sp"
+                                app:cornerRadius="8dp"
+                                app:backgroundTint="@color/primary_orange"
+                                android:textColor="@color/white"
+                                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
+                        </RelativeLayout>
+                    </com.google.android.material.card.MaterialCardView>
+                    
                     <TextView android:id="@+id/tvVoucherLabel" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Promo Spesial Untukmu" android:textSize="16sp" android:textStyle="bold" android:paddingHorizontal="16dp" android:paddingTop="16dp" android:visibility="gone" />
                     <androidx.recyclerview.widget.RecyclerView android:id="@+id/rvVouchers" android:layout_width="match_parent" android:layout_height="wrap_content" android:nestedScrollingEnabled="false" />
                     
@@ -75,7 +133,7 @@
                     
                     <androidx.recyclerview.widget.RecyclerView android:id="@+id/rvProducts" android:layout_width="match_parent" android:layout_height="wrap_content" android:nestedScrollingEnabled="false" />
                     
-                    <View android:layout_width="match_parent" android:layout_height="100dp" />
+                    <View android:layout_width="match_parent" android:layout_height="16dp" />
                 </LinearLayout>
             </androidx.core.widget.NestedScrollView>
         </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
@@ -95,21 +153,6 @@
                 <com.google.android.material.chip.ChipGroup android:id="@+id/chipGroupHistory" android:layout_width="match_parent" android:layout_height="wrap_content" app:chipSpacing="8dp" />
             </LinearLayout>
         </ScrollView>
-
-        <!-- ========== UNIFIED BUYER BOTTOM NAV ========== -->
-        <FrameLayout
-            android:id="@+id/bottomNavContainer"
-            android:layout_width="match_parent"
-            android:layout_height="100dp"
-            android:layout_alignParentBottom="true"
-            android:clipChildren="false">
-            <include
-                android:id="@+id/bottomNavInclude"
-                layout="@layout/layout_bottom_nav_buyer"
-                android:layout_width="match_parent"
-                android:layout_height="100dp" />
-            <TextView android:id="@+id/tvWishlistBadge" android:layout_width="16dp" android:layout_height="16dp" android:layout_gravity="bottom|end" android:layout_marginBottom="58dp" android:layout_marginEnd="85dp" android:background="@drawable/bg_badge_red" android:gravity="center" android:text="0" android:textColor="@color/white" android:textSize="9sp" android:textStyle="bold" android:visibility="gone" android:elevation="18dp" />
-        </FrameLayout>
 
     </RelativeLayout>
 

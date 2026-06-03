@@ -168,6 +168,7 @@ public class InvoiceActivity extends AppCompatActivity {
             double total       = parseDouble(data.get("total_amount"));
 
             binding.tvServiceFee.setText(String.format("Rp %,.0f", serviceFee));
+            binding.rowServiceFee.setVisibility(View.GONE);
             binding.tvDiscount.setText(discount > 0 ? String.format("- Rp %,.0f", discount) : "Rp 0");
             binding.tvTotal.setText(String.format("Rp %,.0f", total));
 
@@ -201,24 +202,51 @@ public class InvoiceActivity extends AppCompatActivity {
     }
 
     private void shareInvoice() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("🧾 INVOICE MEYPAY\n");
-        sb.append("═══════════════════\n");
-        sb.append("No. Pesanan: ").append(binding.tvInvoiceNumber.getText()).append("\n");
-        sb.append("Tanggal: ").append(binding.tvInvoiceDate.getText()).append("\n");
-        sb.append("Status: ").append(binding.tvInvoiceStatus.getText()).append("\n");
-        sb.append("Metode: ").append(binding.tvPaymentMethod.getText()).append("\n");
-        sb.append("───────────────────\n");
-        sb.append("Total: ").append(binding.tvTotal.getText()).append("\n");
-        sb.append("═══════════════════\n");
-        sb.append("Terima kasih telah berbelanja!\n");
-        sb.append("MeyPay - Fast, Simple & Secure");
+        try {
+            View invoiceView = binding.invoiceContent.getChildAt(0);
+            if (invoiceView == null) {
+                Toast.makeText(this, "Gagal menangkap gambar invoice", Toast.LENGTH_SHORT).show();
+                return;
+            }
 
-        Intent shareIntent = new Intent(Intent.ACTION_SEND);
-        shareIntent.setType("text/plain");
-        shareIntent.putExtra(Intent.EXTRA_TEXT, sb.toString());
-        shareIntent.putExtra(Intent.EXTRA_SUBJECT, "Invoice MeyPay - " + binding.tvInvoiceNumber.getText());
-        startActivity(Intent.createChooser(shareIntent, "Bagikan Invoice"));
+            android.graphics.Bitmap bitmap = android.graphics.Bitmap.createBitmap(
+                    invoiceView.getWidth(), 
+                    invoiceView.getHeight(), 
+                    android.graphics.Bitmap.Config.ARGB_8888
+            );
+            android.graphics.Canvas canvas = new android.graphics.Canvas(bitmap);
+            android.graphics.drawable.Drawable bgDrawable = invoiceView.getBackground();
+            if (bgDrawable != null) {
+                bgDrawable.draw(canvas);
+            } else {
+                canvas.drawColor(android.graphics.Color.WHITE);
+            }
+            invoiceView.draw(canvas);
+
+            java.io.File cachePath = new java.io.File(getCacheDir(), "images");
+            cachePath.mkdirs();
+            java.io.File file = new java.io.File(cachePath, "invoice_" + binding.tvInvoiceNumber.getText().toString().replace("#", "") + ".png");
+            java.io.FileOutputStream stream = new java.io.FileOutputStream(file);
+            bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, stream);
+            stream.close();
+
+            android.net.Uri contentUri = androidx.core.content.FileProvider.getUriForFile(
+                    this, 
+                    "com.octania.marketplace.provider", 
+                    file
+            );
+
+            if (contentUri != null) {
+                Intent shareIntent = new Intent(Intent.ACTION_SEND);
+                shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                shareIntent.setDataAndType(contentUri, getContentResolver().getType(contentUri));
+                shareIntent.putExtra(Intent.EXTRA_STREAM, contentUri);
+                shareIntent.putExtra(Intent.EXTRA_SUBJECT, "Invoice MeyPay - " + binding.tvInvoiceNumber.getText());
+                startActivity(Intent.createChooser(shareIntent, "Bagikan Invoice"));
+            }
+        } catch (Exception e) {
+            Toast.makeText(this, "Gagal membagikan invoice: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
     }
 
     private String formatDate(String dateStr) {

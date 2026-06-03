@@ -287,24 +287,35 @@
             android:paddingHorizontal="16dp"
             android:paddingVertical="10dp">
 
-            <!-- Action buttons row -->
+            <!-- Action buttons — vertikal agar tidak terpotong -->
             <LinearLayout
                 android:id="@+id/llActionButtons"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="end"
+                android:orientation="vertical"
+                android:layout_marginBottom="6dp"
                 android:visibility="gone">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPrimary"
+                    android:layout_width="match_parent"
+                    android:layout_height="42dp"
+                    android:layout_marginBottom="6dp"
+                    android:text="Aksi"
+                    android:textSize="13sp"
+                    android:textAllCaps="false"
+                    android:backgroundTint="@color/primary_orange"
+                    app:cornerRadius="8dp"
+                    android:visibility="gone" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnSecondary"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="36dp"
-                    android:layout_marginEnd="8dp"
-                    android:text="Secondary"
-                    android:textSize="11sp"
-                    android:paddingHorizontal="12dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="42dp"
+                    android:layout_marginBottom="6dp"
+                    android:text="Lihat Invoice"
+                    android:textSize="13sp"
                     android:textAllCaps="false"
                     app:cornerRadius="8dp"
                     app:strokeColor="@color/wishlist_red"
@@ -312,16 +323,18 @@
                     android:visibility="gone" />
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnPrimary"
-                    android:layout_width="wrap_content"
-                    android:layout_height="36dp"
-                    android:text="Primary"
-                    android:textSize="11sp"
-                    android:paddingHorizontal="12dp"
+                    android:id="@+id/btnRefund"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="42dp"
+                    android:text="Ajukan Refund"
+                    android:textSize="13sp"
                     android:textAllCaps="false"
-                    android:backgroundTint="@color/primary_orange"
                     app:cornerRadius="8dp"
+                    app:strokeColor="#F59E0B"
+                    android:textColor="#F59E0B"
                     android:visibility="gone" />
+
             </LinearLayout>
 
             <!-- Rincian Pesanan Button (full width, outlined) -->

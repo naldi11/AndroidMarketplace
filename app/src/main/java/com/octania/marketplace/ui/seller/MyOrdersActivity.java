@@ -263,8 +263,7 @@ public class MyOrdersActivity extends AppCompatActivity {
 
     private void filterOrders(int tabPosition) {
         List<Map<String, Object>> filtered = new ArrayList<>();
-        // Tabs: 0: Semua, 1: Belum Bayar, 2: Dikemas, 3: Dikirim, 4: Selesai, 5:
-        // Dibatalkan
+        // Tabs: 0: Semua, 1: Belum Bayar, 2: Dikemas, 3: Dikirim, 4: Selesai, 5: Dibatalkan, 6: Refund
         for (Map<String, Object> order : allOrders) {
             String status = String.valueOf(order.get("status"));
             boolean add = false;
@@ -288,6 +287,9 @@ public class MyOrdersActivity extends AppCompatActivity {
                     break;
                 case 5:
                     add = status.equals("cancelled");
+                    break;
+                case 6:
+                    add = status.equals("disputed") || status.equals("disputed_refunded") || status.equals("buyer_won") || status.equals("buyer_shipping_back") || status.equals("seller_received_back") || status.equals("seller_won");
                     break;
             }
             if (add) {
@@ -591,20 +593,29 @@ public class MyOrdersActivity extends AppCompatActivity {
             });
 
             // ===== Action Buttons =====
+            h.llActionButtons.setVisibility(View.VISIBLE);
             h.btnPrimary.setVisibility(View.GONE);
             h.btnSecondary.setVisibility(View.GONE);
-            h.llActionButtons.setVisibility(View.GONE);
+            
+            // Tombol Ajukan Laporan untuk status shipped
+            if ("shipped".equals(status)) {
+                h.btnRefund.setVisibility(View.VISIBLE);
+                h.btnRefund.setText("Ajukan Laporan Masalah");
+                h.btnRefund.setOnClickListener(v -> {
+                    Intent intent = new Intent(MyOrdersActivity.this,
+                            com.octania.marketplace.ui.dispute.DisputeDetailActivity.class);
+                    intent.putExtra(com.octania.marketplace.ui.dispute.DisputeDetailActivity.EXTRA_TRANSACTION_ID, txId);
+                    startActivity(intent);
+                });
+            } else {
+                h.btnRefund.setVisibility(View.GONE);
+            }
 
             if ("waiting_payment".equals(status)) {
-                h.llActionButtons.setVisibility(View.VISIBLE);
                 h.btnPrimary.setVisibility(View.VISIBLE);
-
-                // Metode otomatis (MeyPay Wallet) -> Bayar Sekarang
-                // Metode manual (transfer bank, dll) -> Upload Bukti
                 boolean isAutoPayment = paymentMethod != null &&
                         (paymentMethod.toLowerCase().contains("meypay") ||
                          paymentMethod.toLowerCase().contains("wallet"));
-
                 if (isAutoPayment) {
                     h.btnPrimary.setText("Bayar Sekarang");
                     h.btnPrimary.setOnClickListener(v -> {
@@ -614,14 +625,36 @@ public class MyOrdersActivity extends AppCompatActivity {
                         startActivity(intent);
                     });
                 } else {
-                    h.btnPrimary.setText("Upload Bukti");
+                    h.btnPrimary.setText("Upload Bukti Bayar");
                     h.btnPrimary.setOnClickListener(v -> openFilePickerForProof(txId));
                 }
+
             } else if ("shipped".equals(status)) {
-                h.llActionButtons.setVisibility(View.VISIBLE);
                 h.btnPrimary.setVisibility(View.VISIBLE);
-                h.btnPrimary.setText("Pesanan Diterima");
+                h.btnPrimary.setText("Konfirmasi Diterima");
                 h.btnPrimary.setOnClickListener(v -> confirmReceived(txId));
+
+            } else if ("disputed".equals(status)) {
+                // Laporan masalah aktif — tampilkan tombol kirim balik
+                h.btnPrimary.setVisibility(View.VISIBLE);
+                h.btnPrimary.setText("📦 Kirim Barang Kembali");
+                h.btnPrimary.setOnClickListener(v -> {
+                    Intent intent = new Intent(MyOrdersActivity.this,
+                            com.octania.marketplace.ui.dispute.DisputeDetailActivity.class);
+                    intent.putExtra(com.octania.marketplace.ui.dispute.DisputeDetailActivity.EXTRA_TRANSACTION_ID, txId);
+                    startActivity(intent);
+                });
+
+            } else if ("disputed_refunded".equals(status)) {
+                // Refund selesai
+                h.btnPrimary.setVisibility(View.VISIBLE);
+                h.btnPrimary.setText("✅ Lihat Detail Refund");
+                h.btnPrimary.setOnClickListener(v -> {
+                    Intent intent = new Intent(MyOrdersActivity.this,
+                            com.octania.marketplace.ui.dispute.DisputeDetailActivity.class);
+                    intent.putExtra(com.octania.marketplace.ui.dispute.DisputeDetailActivity.EXTRA_TRANSACTION_ID, txId);
+                    startActivity(intent);
+                });
             }
 
             if ("cancelled".equals(status)) {
@@ -718,7 +751,7 @@ public class MyOrdersActivity extends AppCompatActivity {
             TextView tvPaymentMethod, tvTotal;
             // Buttons
             LinearLayout llActionButtons;
-            MaterialButton btnPrimary, btnSecondary, btnRincianPesanan;
+            MaterialButton btnPrimary, btnSecondary, btnRincianPesanan, btnRefund;
 
             VH(View itemView) {
                 super(itemView);
@@ -745,6 +778,7 @@ public class MyOrdersActivity extends AppCompatActivity {
                 btnPrimary = itemView.findViewById(R.id.btnPrimary);
                 btnSecondary = itemView.findViewById(R.id.btnSecondary);
                 btnRincianPesanan = itemView.findViewById(R.id.btnRincianPesanan);
+                btnRefund = itemView.findViewById(R.id.btnRefund);
             }
         }
     }
