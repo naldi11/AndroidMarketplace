@@ -168,6 +168,27 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"/>
                     </com.google.android.material.textfield.TextInputLayout>
+                    <ImageView
+                        android:id="@+id/ivReturnProofPreview"
+                        android:layout_width="match_parent"
+                        android:layout_height="180dp"
+                        android:scaleType="centerInside"
+                        android:src="@drawable/ic_image_placeholder"
+                        android:layout_marginBottom="12dp"
+                        android:visibility="gone" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnSelectReturnProof"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:text="Pilih Foto Bukti Kirim Balik"
+                        app:cornerRadius="10dp"
+                        app:strokeColor="#10B981"
+                        android:textColor="#10B981"
+                        android:layout_marginBottom="12dp"
+                        android:textAllCaps="false" />
+
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnShipBack"
                         android:layout_width="match_parent"
@@ -210,7 +231,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Setelah penjual konfirmasi menerima barang, dana otomatis masuk ke saldo MeyPay kamu."
+                        android:text="Setelah penjual konfirmasi menerima barang, dana akan ditransfer ke rekening kamu oleh admin."
                         android:textSize="13sp"
                         android:textColor="#64748B"
                         android:layout_marginTop="8dp"/>
@@ -222,6 +243,64 @@
                         android:visibility="gone"
                         android:layout_marginTop="12dp"
                         app:backgroundTint="#F59E0B"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Refund Transferred (Waiting Buyer Confirmation) -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardRefundTransferred"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:visibility="gone"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp"
+                app:strokeColor="#8B5CF6"
+                app:strokeWidth="2dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="💸 Dana Telah Ditransfer"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:textColor="#6D28D9"/>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Admin telah mentransfer dana secara manual ke rekening kamu. Harap periksa mutasi bank Anda dan klik konfirmasi jika dana sudah masuk."
+                        android:textSize="13sp"
+                        android:textColor="#64748B"
+                        android:layout_marginTop="4dp"
+                        android:layout_marginBottom="12dp"/>
+                    
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Bukti Transfer:"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:textColor="#1E293B"
+                        android:layout_marginBottom="6dp"/>
+                    <ImageView
+                        android:id="@+id/ivAdminRefundProof"
+                        android:layout_width="match_parent"
+                        android:layout_height="180dp"
+                        android:scaleType="centerInside"
+                        android:src="@drawable/ic_image_placeholder"
+                        android:layout_marginBottom="12dp"/>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnConfirmRefundReceived"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Konfirmasi Terima Dana"
+                        app:backgroundTint="#8B5CF6"
+                        android:textColor="@android:color/white"/>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -252,7 +331,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Dana telah masuk ke saldo MeyPay kamu."
+                        android:text="Dana akan ditransfer ke rekening kamu oleh admin."
                         android:textSize="13sp"
                         android:textColor="#64748B"
                         android:gravity="center"

@@ -301,7 +301,7 @@ public class ChatActivity extends AppCompatActivity {
                 break;
             case "refunded":
                 tvBannerTitle.setText("💰 Refund berhasil!");
-                tvBannerDesc.setText("Dana sudah masuk ke saldo MeyPay kamu.");
+                tvBannerDesc.setText("Dana akan ditransfer ke rekening kamu oleh admin.");
                 btnBannerAction.setText("Lihat Detail");
                 bannerDispute.setBackgroundColor(0xFFD1FAE5);
                 tvBannerTitle.setTextColor(0xFF065F46);

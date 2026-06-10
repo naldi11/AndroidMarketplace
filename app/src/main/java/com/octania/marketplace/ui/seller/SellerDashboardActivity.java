@@ -103,19 +103,12 @@ public class SellerDashboardActivity extends AppCompatActivity {
         binding.bottomNav.bottomNav.setSelectedItemId(R.id.nav_home);
         com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(binding.bottomNav.bottomNav);
 
-/* 
-        findViewById(R.id.fabScan).setOnClickListener(v -> {
-            com.octania.marketplace.utils.NavigationUtils.showScanDialog(this);
-        });
-*/
+
 
         binding.bottomNav.bottomNav.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
             if (id == R.id.nav_home) {
                 return true;
-            } else if (id == R.id.nav_scan) {
-                com.octania.marketplace.utils.NavigationUtils.showScanDialog(this);
-                return false;
             } else if (id == R.id.nav_add) {
                 startActivity(new Intent(this,
                         com.octania.marketplace.ui.product.MyProductsActivity.class));

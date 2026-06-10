@@ -78,19 +78,10 @@
             android:label="Pembayaran" />
         <activity android:name=".ui.chat.ChatActivity" />
         <activity android:name=".ui.chat.ConversationsActivity" />
-        <activity android:name=".ui.payment.ScanQrActivity"
-            android:screenOrientation="portrait"
-            android:theme="@style/Theme.MarketPlace" />
-        <activity android:name=".ui.payment.PendingPaymentsActivity"
-            android:label="Tagihan Belum Dibayar" />
-        <activity android:name=".ui.payment.WalletActivity"
-            android:label="MeyPay Wallet" />
         <activity android:name=".ui.payment.PaymentSuccessActivity"
             android:label="Pembayaran Berhasil" />
         <activity android:name=".ui.payment.InvoiceActivity"
             android:label="Invoice Pembayaran" />
-        <activity android:name=".ui.payment.WalletPaymentActivity"
-            android:label="Bayar dengan MeyPay" />
 
     </application>
 

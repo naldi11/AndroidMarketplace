@@ -66,7 +66,7 @@ public class WishlistActivity extends AppCompatActivity {
         binding.bottomNavInclude.bottomNav.setSelectedItemId(R.id.nav_wishlist);
         com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(binding.bottomNavInclude.bottomNav);
         
-        binding.bottomNavInclude.fabScan.setOnClickListener(v -> showScanDialog());
+
 
         binding.bottomNavInclude.bottomNav.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
@@ -89,9 +89,7 @@ public class WishlistActivity extends AppCompatActivity {
         });
     }
 
-    private void showScanDialog() {
-        com.octania.marketplace.utils.NavigationUtils.showScanDialog(this);
-    }
+
 
     @Override
     protected void onResume() {

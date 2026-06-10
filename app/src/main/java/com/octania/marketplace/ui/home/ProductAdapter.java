@@ -257,7 +257,7 @@ public class ProductAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             // Distance — always show when available
             if (tvProductDistance != null) {
                 Double dist = product.getDistanceKm();
-                if (currentLat != null && currentLng != null && product.getLatitude() != null && product.getLongitude() != null) {
+                if (dist == null && currentLat != null && currentLng != null && product.getLatitude() != null && product.getLongitude() != null) {
                     float[] results = new float[1];
                     android.location.Location.distanceBetween(
                         currentLat, currentLng,

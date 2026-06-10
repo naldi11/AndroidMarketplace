@@ -156,6 +156,12 @@
                         <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Subtotal" android:textColor="#888" />
                         <TextView android:id="@+id/tvSubtotal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="@color/text_dark" />
                     </LinearLayout>
+
+                    <LinearLayout android:id="@+id/rowShipping" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="4dp" android:visibility="gone">
+                        <TextView android:id="@+id/tvShippingLabel" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Ongkos Kirim" android:textColor="#888" />
+                        <TextView android:id="@+id/tvShippingCost" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="@color/text_dark" />
+                    </LinearLayout>
+
                     <LinearLayout android:id="@+id/rowServiceFee" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="4dp">
                         <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Biaya Layanan" android:textColor="#888" />
                         <TextView android:id="@+id/tvServiceFee" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="@color/text_dark" />
@@ -187,7 +193,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="MeyPay — Fast, Simple &amp; Secure"
+                android:text="Marketplace Payment — Fast &amp; Secure"
                 android:textAlignment="center"
                 android:textColor="@color/primary_orange"
                 android:textStyle="bold"

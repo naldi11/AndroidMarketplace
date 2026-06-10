@@ -2,7 +2,7 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="100dp"
+    android:layout_height="90dp"
     android:clipChildren="false"
     android:clipToPadding="false">
 
@@ -12,26 +12,12 @@
         android:layout_height="65dp"
         android:layout_alignParentBottom="true"
         android:layout_marginHorizontal="8dp"
-        android:layout_marginBottom="24dp"
+        android:layout_marginBottom="12dp"
         android:background="@drawable/bg_bottom_nav"
         android:elevation="14dp"
         app:labelVisibilityMode="labeled"
         app:itemIconTint="@color/nav_item_color"
         app:itemTextColor="@color/nav_item_color"
         app:menu="@menu/bottom_nav_buyer" />
-
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fabScan"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_centerHorizontal="true"
-        android:layout_alignParentBottom="true"
-        android:layout_marginBottom="44dp"
-        app:srcCompat="@drawable/ic_scan"
-        app:backgroundTint="@color/primary_orange"
-        app:tint="@color/white"
-        app:elevation="16dp"
-        app:fabSize="normal"
-        app:borderWidth="0dp" />
 
 </RelativeLayout>

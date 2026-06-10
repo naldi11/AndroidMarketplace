@@ -26,11 +26,6 @@ public class Transaction {
     @SerializedName("payment_method_code")
     private String paymentMethodCode;
 
-    @SerializedName("meypay_va")
-    private String meypayVa;
-
-    @SerializedName("meypay_qr_content")
-    private String meypayQrContent;
 
     @SerializedName("expires_at")
     private String expiresAt;
@@ -75,11 +70,6 @@ public class Transaction {
     public String getPaymentMethodCode() { return paymentMethodCode; }
     public void setPaymentMethodCode(String paymentMethodCode) { this.paymentMethodCode = paymentMethodCode; }
 
-    public String getMeypayVa() { return meypayVa; }
-    public void setMeypayVa(String meypayVa) { this.meypayVa = meypayVa; }
-
-    public String getMeypayQrContent() { return meypayQrContent; }
-    public void setMeypayQrContent(String meypayQrContent) { this.meypayQrContent = meypayQrContent; }
 
     public String getExpiresAt() { return expiresAt; }
     public void setExpiresAt(String expiresAt) { this.expiresAt = expiresAt; }

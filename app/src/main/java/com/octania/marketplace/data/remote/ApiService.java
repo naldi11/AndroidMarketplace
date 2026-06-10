@@ -136,10 +136,6 @@ public interface ApiService {
                         @Header("Authorization") String token,
                         @retrofit2.http.Path("id") int transactionId);
 
-        @POST("transactions/pay-wallet/{id}")
-        Call<ApiResponse<Object>> payWithWallet(
-                        @Header("Authorization") String token,
-                        @retrofit2.http.Path("id") int transactionId);
 
         @GET("payment-methods")
         Call<ApiResponse<List<Object>>> getPaymentMethods();
@@ -219,6 +215,7 @@ public interface ApiService {
                         @retrofit2.http.Part("location") okhttp3.RequestBody location,
                         @retrofit2.http.Part("latitude") okhttp3.RequestBody latitude,
                         @retrofit2.http.Part("longitude") okhttp3.RequestBody longitude,
+                        @retrofit2.http.Part("shipping_suggestion") okhttp3.RequestBody shippingSuggestion,
                         @retrofit2.http.Part java.util.List<okhttp3.MultipartBody.Part> images);
 
         // ===== My Products =====
@@ -243,7 +240,8 @@ public interface ApiService {
                         @Field("condition") String condition,
                         @Field("weight") int weight,
                         @Field("location") String location,
-                        @Field("description") String description);
+                        @Field("description") String description,
+                        @Field("shipping_suggestion") String shippingSuggestion);
 
         @retrofit2.http.DELETE("products/{id}")
         Call<ApiResponse<Void>> deleteProduct(
@@ -317,16 +315,22 @@ public interface ApiService {
                 @Header("Authorization") String token,
                 @retrofit2.http.Path("transactionId") int transactionId);
 
-        @retrofit2.http.FormUrlEncoded
+        @retrofit2.http.Multipart
         @POST("disputes/{id}/buyer-ship-back")
         Call<ApiResponse<Object>> buyerShipBack(
                 @Header("Authorization") String token,
                 @retrofit2.http.Path("id") int disputeId,
-                @retrofit2.http.Field("return_courier") String courier,
-                @retrofit2.http.Field("return_tracking_number") String trackingNumber);
+                @retrofit2.http.Part("return_courier") okhttp3.RequestBody courier,
+                @retrofit2.http.Part("return_tracking_number") okhttp3.RequestBody trackingNumber,
+                @retrofit2.http.Part okhttp3.MultipartBody.Part returnShippingProof);
 
         @POST("disputes/{id}/seller-confirm-return")
         Call<ApiResponse<Object>> sellerConfirmReturn(
+                @Header("Authorization") String token,
+                @retrofit2.http.Path("id") int disputeId);
+
+        @POST("disputes/{id}/buyer-confirm-refund")
+        Call<ApiResponse<Object>> buyerConfirmRefund(
                 @Header("Authorization") String token,
                 @retrofit2.http.Path("id") int disputeId);
 
@@ -413,30 +417,6 @@ Call<ApiResponse<Object>> submitReport(
         @Field("reason") String reason,
         @Field("description") String description);
 
-// ===== MeyPay Wallet =====
-@GET("wallet/info")
-Call<ApiResponse<Object>> getWalletInfo(@Header("Authorization") String token);
-
-@GET("wallet/transactions")
-Call<ApiResponse<Object>> getWalletTransactions(@Header("Authorization") String token);
-
-@FormUrlEncoded
-@POST("wallet/topup")
-Call<ApiResponse<Object>> topupWallet(
-        @Header("Authorization") String token,
-        @Field("amount") double amount);
-
-@FormUrlEncoded
-@POST("wallet/verify-payment")
-Call<ApiResponse<Object>> verifyPaymentCode(
-        @Header("Authorization") String token,
-        @Field("code") String code);
-
-@FormUrlEncoded
-@POST("wallet/verify-pin")
-Call<ApiResponse<Object>> verifyWalletPin(
-        @Header("Authorization") String token,
-        @Field("pin") String pin);
 
 // ===== Chat System =====
 @GET("chat/conversations")

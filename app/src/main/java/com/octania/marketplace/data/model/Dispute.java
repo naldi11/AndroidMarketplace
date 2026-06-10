@@ -16,6 +16,7 @@ public class Dispute {
     @SerializedName("return_tracking_number")      private String returnTrackingNumber;
     @SerializedName("buyer_shipped_back_at")       private String buyerShippedBackAt;
     @SerializedName("seller_received_back_at")     private String sellerReceivedBackAt;
+    @SerializedName("admin_refund_proof")          private String adminRefundProof;
     @SerializedName("created_at")                  private String createdAt;
 
     public int getId()                      { return id; }
@@ -31,5 +32,6 @@ public class Dispute {
     public String getReturnTrackingNumber() { return returnTrackingNumber; }
     public String getBuyerShippedBackAt()   { return buyerShippedBackAt; }
     public String getSellerReceivedBackAt() { return sellerReceivedBackAt; }
+    public String getAdminRefundProof()     { return adminRefundProof; }
     public String getCreatedAt()            { return createdAt; }
 }

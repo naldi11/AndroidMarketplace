@@ -145,7 +145,7 @@ public class HomeActivity extends AppCompatActivity {
             startActivity(new Intent(this, com.octania.marketplace.ui.chat.ConversationsActivity.class));
         });
 
-        binding.bottomNavInclude.fabScan.setOnClickListener(v -> showScanDialog());
+
 
         fetchCategories();
         fetchVouchers();
@@ -166,9 +166,7 @@ public class HomeActivity extends AppCompatActivity {
         });
     }
 
-    private void showScanDialog() {
-        com.octania.marketplace.utils.NavigationUtils.showScanDialog(this);
-    }
+
 
     // ==================== SETUP ====================
 
@@ -387,10 +385,7 @@ public class HomeActivity extends AppCompatActivity {
                 return false;
             }
 
-            if (id == R.id.nav_scan) {
-                showScanDialog();
-                return false; // Jangan seleksi item scan, biar FAB tetap menonjol
-            } else if (id == R.id.nav_orders) {
+            if (id == R.id.nav_orders) {
                 startActivity(new Intent(this,
                         com.octania.marketplace.ui.seller.MyOrdersActivity.class));
                 finish();

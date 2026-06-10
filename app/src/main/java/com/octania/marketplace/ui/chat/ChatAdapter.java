@@ -49,7 +49,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                m.startsWith("Penjual telah menerima") ||
                m.startsWith("Laporan sedang ditinjau oleh admin") ||
                m.startsWith("Admin mengkonfirmasi penjual") ||
-               m.contains("telah dikembalikan ke MeyPay Wallet pembeli") ||
+               m.contains("akan di-refund ke rekening pembeli") ||
                m.contains("Catatan admin:");
     }
 

@@ -131,7 +131,7 @@ public class InvoiceActivity extends AppCompatActivity {
 
             // Metode Pembayaran
             String payMethod = data.containsKey("payment_method")
-                    ? String.valueOf(data.get("payment_method")) : "MeyPay Wallet";
+                    ? String.valueOf(data.get("payment_method")) : "Transfer Bank";
             binding.tvPaymentMethod.setText(payMethod);
 
             // Alamat pengiriman
@@ -163,9 +163,29 @@ public class InvoiceActivity extends AppCompatActivity {
                 binding.tvSubtotal.setText(String.format("Rp %,.0f", subtotal));
             }
 
+            double shippingCost = parseDouble(data.get("shipping_cost"));
             double serviceFee = parseDouble(data.get("service_fee"));
             double discount    = parseDouble(data.get("discount_total"));
             double total       = parseDouble(data.get("total_amount"));
+
+            if (shippingCost > 0) {
+                String deliveryTypeStr = data.get("delivery_type") != null ? String.valueOf(data.get("delivery_type")) : "courier";
+                String shippingVehicleStr = data.get("shipping_vehicle") != null ? String.valueOf(data.get("shipping_vehicle")) : "";
+
+                String deliveryLabel = "Ongkos Kirim";
+                if (deliveryTypeStr.equalsIgnoreCase("pickup")) {
+                    deliveryLabel += " (Jemput Sendiri)";
+                } else if (!shippingVehicleStr.isEmpty() && !shippingVehicleStr.equalsIgnoreCase("null")) {
+                    String capitalizedVehicle = shippingVehicleStr.substring(0, 1).toUpperCase() + shippingVehicleStr.substring(1);
+                    deliveryLabel += " (" + capitalizedVehicle + ")";
+                }
+
+                binding.tvShippingLabel.setText(deliveryLabel);
+                binding.tvShippingCost.setText(String.format("Rp %,.0f", shippingCost));
+                binding.rowShipping.setVisibility(View.VISIBLE);
+            } else {
+                binding.rowShipping.setVisibility(View.GONE);
+            }
 
             binding.tvServiceFee.setText(String.format("Rp %,.0f", serviceFee));
             binding.rowServiceFee.setVisibility(View.GONE);
@@ -241,7 +261,7 @@ public class InvoiceActivity extends AppCompatActivity {
                 shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 shareIntent.setDataAndType(contentUri, getContentResolver().getType(contentUri));
                 shareIntent.putExtra(Intent.EXTRA_STREAM, contentUri);
-                shareIntent.putExtra(Intent.EXTRA_SUBJECT, "Invoice MeyPay - " + binding.tvInvoiceNumber.getText());
+                shareIntent.putExtra(Intent.EXTRA_SUBJECT, "Invoice Pembayaran - " + binding.tvInvoiceNumber.getText());
                 startActivity(Intent.createChooser(shareIntent, "Bagikan Invoice"));
             }
         } catch (Exception e) {

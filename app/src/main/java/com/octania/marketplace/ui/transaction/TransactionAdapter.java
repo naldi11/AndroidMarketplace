@@ -110,13 +110,7 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
             binding.tvTransactionStatus.setText(displayStatus);
 
             if ("waiting_payment".equalsIgnoreCase(rawStatus)) {
-                // Hide upload button for automated payment methods
-                String method = transaction.getPaymentMethodCode() != null ? transaction.getPaymentMethodCode() : "";
-                if (method.contains("meypay")) {
-                    binding.btnUploadProof.setVisibility(View.GONE);
-                } else {
-                    binding.btnUploadProof.setVisibility(View.VISIBLE);
-                }
+                binding.btnUploadProof.setVisibility(View.VISIBLE);
                 
                 binding.tvTransactionStatus.setTextColor(android.graphics.Color.parseColor("#E65100"));
                 binding.tvTransactionStatus.setBackgroundColor(android.graphics.Color.parseColor("#FFF3E0"));

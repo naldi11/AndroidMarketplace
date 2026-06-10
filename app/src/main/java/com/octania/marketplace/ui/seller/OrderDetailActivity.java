@@ -510,11 +510,7 @@ public class OrderDetailActivity extends AppCompatActivity {
             
             android.util.Log.d("ProofDebug", "proof resolved: " + proof);
             
-            // Hide proof for MeyPay automation
-            String methodCode = safeString(order.get("payment_method_code"), "");
-            if (methodCode.contains("meypay")) {
-                cardProof.setVisibility(View.GONE);
-            } else if (proof != null && !proof.isEmpty()) {
+            if (proof != null && !proof.isEmpty()) {
                 cardProof.setVisibility(View.VISIBLE);
                 if (tvProofTitle != null)
                     tvProofTitle.setText("Bukti Pembayaran");

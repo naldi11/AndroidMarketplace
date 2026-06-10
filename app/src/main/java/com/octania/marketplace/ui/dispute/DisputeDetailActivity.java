@@ -10,6 +10,18 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+
+import android.content.Intent;
+import android.net.Uri;
+import android.provider.OpenableColumns;
+import android.database.Cursor;
+import java.io.InputStream;
+import java.io.ByteArrayOutputStream;
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.RequestBody;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
@@ -21,6 +33,7 @@ import com.octania.marketplace.data.model.ApiResponse;
 import com.octania.marketplace.data.model.Dispute;
 import com.octania.marketplace.data.remote.ApiClient;
 import com.octania.marketplace.data.remote.ApiService;
+import com.bumptech.glide.Glide;
 
 import java.lang.reflect.Type;
 
@@ -38,11 +51,34 @@ public class DisputeDetailActivity extends AppCompatActivity {
     private Dispute currentDispute;
 
     private ProgressBar progressBar;
-    private MaterialCardView cardShipBack, cardWaitingSeller, cardRefunded;
+    private MaterialCardView cardShipBack, cardWaitingSeller, cardRefunded, cardRefundTransferred;
     private TextView tvDisputeId, tvStatus, tvStatusDesc, tvAdminNotes;
     private TextView tvReason, tvDescription, tvTrackingInfo;
     private TextInputEditText etReturnCourier, etReturnTracking;
-    private MaterialButton btnShipBack, btnSellerConfirmReturn;
+    private MaterialButton btnShipBack, btnSellerConfirmReturn, btnConfirmRefundReceived;
+    private android.widget.ImageView ivAdminRefundProof;
+
+    private android.widget.ImageView ivReturnProofPreview;
+    private MaterialButton btnSelectReturnProof;
+    private Uri selectedReturnProofUri = null;
+
+    private final ActivityResultLauncher<Intent> imagePickerLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    selectedReturnProofUri = result.getData().getData();
+                    if (selectedReturnProofUri != null) {
+                        ivReturnProofPreview.setImageURI(selectedReturnProofUri);
+                        ivReturnProofPreview.setVisibility(View.VISIBLE);
+                    }
+                }
+            });
+
+    private void openReturnImagePicker() {
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType("image/*");
+        imagePickerLauncher.launch(Intent.createChooser(intent, "Pilih Foto Bukti Kirim Balik"));
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,6 +97,7 @@ public class DisputeDetailActivity extends AppCompatActivity {
         cardShipBack      = findViewById(R.id.cardShipBack);
         cardWaitingSeller = findViewById(R.id.cardWaitingSeller);
         cardRefunded      = findViewById(R.id.cardRefunded);
+        cardRefundTransferred = findViewById(R.id.cardRefundTransferred);
         tvDisputeId       = findViewById(R.id.tvDisputeId);
         tvStatus          = findViewById(R.id.tvStatus);
         tvStatusDesc      = findViewById(R.id.tvStatusDesc);
@@ -72,9 +109,16 @@ public class DisputeDetailActivity extends AppCompatActivity {
         etReturnTracking  = findViewById(R.id.etReturnTracking);
         btnShipBack       = findViewById(R.id.btnShipBack);
         btnSellerConfirmReturn = findViewById(R.id.btnSellerConfirmReturn);
+        btnConfirmRefundReceived = findViewById(R.id.btnConfirmRefundReceived);
+        ivAdminRefundProof    = findViewById(R.id.ivAdminRefundProof);
 
+        ivReturnProofPreview = findViewById(R.id.ivReturnProofPreview);
+        btnSelectReturnProof = findViewById(R.id.btnSelectReturnProof);
+
+        btnSelectReturnProof.setOnClickListener(v -> openReturnImagePicker());
         btnShipBack.setOnClickListener(v -> submitShipBack());
         btnSellerConfirmReturn.setOnClickListener(v -> submitSellerConfirmReturn());
+        btnConfirmRefundReceived.setOnClickListener(v -> submitConfirmRefundReceived());
 
         if (transactionId == -1) {
             Toast.makeText(this, "ID transaksi tidak valid", Toast.LENGTH_SHORT).show();
@@ -210,6 +254,7 @@ public class DisputeDetailActivity extends AppCompatActivity {
         cardShipBack.setVisibility(View.GONE);
         cardWaitingSeller.setVisibility(View.GONE);
         cardRefunded.setVisibility(View.GONE);
+        cardRefundTransferred.setVisibility(View.GONE);
 
         String role = new com.octania.marketplace.utils.SessionManager(this).getActiveRole();
         String status = d.getStatus() != null ? d.getStatus() : "";
@@ -255,13 +300,46 @@ public class DisputeDetailActivity extends AppCompatActivity {
             case "seller_received_back":
                 tvStatus.setText("⏳ Penjual Sudah Terima Barang");
                 tvStatus.setTextColor(0xFF6366F1);
-                tvStatusDesc.setText("Dana sedang diproses untuk dikembalikan ke kamu.");
+                tvStatusDesc.setText("Dana sedang diproses untuk ditransfer manual oleh Admin.");
+                break;
+            case "refund_transferred":
+                tvStatus.setText("💸 Dana Telah Ditransfer");
+                tvStatus.setTextColor(0xFF8B5CF6);
+                tvStatusDesc.setText("Admin telah mentransfer dana ke rekening kamu secara manual.");
+                cardRefundTransferred.setVisibility(View.VISIBLE);
+
+                if (d.getAdminRefundProof() != null && !d.getAdminRefundProof().isEmpty()) {
+                    ivAdminRefundProof.setVisibility(View.VISIBLE);
+                    String proofUrl = getBaseStorageUrl() + d.getAdminRefundProof();
+                    Glide.with(this).load(proofUrl).into(ivAdminRefundProof);
+                    ivAdminRefundProof.setOnClickListener(v -> showFullScreenImage(proofUrl));
+                } else {
+                    ivAdminRefundProof.setVisibility(View.GONE);
+                }
+
+                if ("buyer".equals(role)) {
+                    btnConfirmRefundReceived.setVisibility(View.VISIBLE);
+                    btnConfirmRefundReceived.setEnabled(true);
+                } else {
+                    btnConfirmRefundReceived.setVisibility(View.GONE);
+                }
                 break;
             case "refunded":
                 tvStatus.setText("💰 Dana Dikembalikan");
                 tvStatus.setTextColor(0xFF10B981);
-                tvStatusDesc.setText("Refund berhasil! Dana telah masuk ke saldo MeyPay kamu.");
+                tvStatusDesc.setText("Refund selesai! Dana telah diterima oleh pembeli.");
                 cardRefunded.setVisibility(View.VISIBLE);
+                cardRefundTransferred.setVisibility(View.VISIBLE);
+                btnConfirmRefundReceived.setVisibility(View.GONE);
+
+                if (d.getAdminRefundProof() != null && !d.getAdminRefundProof().isEmpty()) {
+                    ivAdminRefundProof.setVisibility(View.VISIBLE);
+                    String proofUrl = getBaseStorageUrl() + d.getAdminRefundProof();
+                    Glide.with(this).load(proofUrl).into(ivAdminRefundProof);
+                    ivAdminRefundProof.setOnClickListener(v -> showFullScreenImage(proofUrl));
+                } else {
+                    ivAdminRefundProof.setVisibility(View.GONE);
+                }
                 break;
             case "seller_won":
             case "closed":
@@ -283,35 +361,75 @@ public class DisputeDetailActivity extends AppCompatActivity {
         String courier  = etReturnCourier.getText() != null ? etReturnCourier.getText().toString().trim() : "";
         String tracking = etReturnTracking.getText() != null ? etReturnTracking.getText().toString().trim() : "";
 
-        if (courier.isEmpty())  { etReturnCourier.setError("Nama kurir wajib diisi"); return; }
-        if (tracking.isEmpty()) { etReturnTracking.setError("Nomor resi wajib diisi"); return; }
+        if (courier.isEmpty())  { etReturnCourier.setError("Nama driver/kurir wajib diisi"); return; }
+        if (tracking.isEmpty()) { etReturnTracking.setError("Plat nomor/resi wajib diisi"); return; }
+        if (selectedReturnProofUri == null) {
+            Toast.makeText(this, "Foto bukti pengiriman balik wajib diunggah", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
         progressBar.setVisibility(View.VISIBLE);
         btnShipBack.setEnabled(false);
 
-        apiService.buyerShipBack(token, currentDispute.getId(), courier, tracking)
-                .enqueue(new Callback<ApiResponse<Object>>() {
-                    @Override
-                    public void onResponse(@NonNull Call<ApiResponse<Object>> call,
-                                           @NonNull Response<ApiResponse<Object>> response) {
-                        progressBar.setVisibility(View.GONE);
-                        btnShipBack.setEnabled(true);
-                        if (response.isSuccessful()) {
-                            Toast.makeText(DisputeDetailActivity.this,
-                                    "Pengiriman balik berhasil dikonfirmasi!", Toast.LENGTH_LONG).show();
-                            loadDispute();
-                        } else {
-                            Toast.makeText(DisputeDetailActivity.this, "Gagal mengirim konfirmasi", Toast.LENGTH_SHORT).show();
-                        }
-                    }
+        try {
+            InputStream inputStream = getContentResolver().openInputStream(selectedReturnProofUri);
+            byte[] bytes = getBytes(inputStream);
 
-                    @Override
-                    public void onFailure(@NonNull Call<ApiResponse<Object>> call, @NonNull Throwable t) {
-                        progressBar.setVisibility(View.GONE);
-                        btnShipBack.setEnabled(true);
-                        Toast.makeText(DisputeDetailActivity.this, "Koneksi gagal", Toast.LENGTH_SHORT).show();
-                    }
-                });
+            String filename = "return_proof_" + System.currentTimeMillis() + ".jpg";
+            Cursor returnCursor = getContentResolver().query(selectedReturnProofUri, null, null, null, null);
+            if (returnCursor != null) {
+                int nameIndex = returnCursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                returnCursor.moveToFirst();
+                filename = returnCursor.getString(nameIndex);
+                returnCursor.close();
+            }
+
+            RequestBody requestFile = RequestBody.create(MediaType.parse(getContentResolver().getType(selectedReturnProofUri)), bytes);
+            MultipartBody.Part body = MultipartBody.Part.createFormData("return_shipping_proof", filename, requestFile);
+
+            RequestBody courierBody = RequestBody.create(MediaType.parse("text/plain"), courier);
+            RequestBody trackingBody = RequestBody.create(MediaType.parse("text/plain"), tracking);
+
+            apiService.buyerShipBack(token, currentDispute.getId(), courierBody, trackingBody, body)
+                    .enqueue(new Callback<ApiResponse<Object>>() {
+                        @Override
+                        public void onResponse(@NonNull Call<ApiResponse<Object>> call,
+                                               @NonNull Response<ApiResponse<Object>> response) {
+                            progressBar.setVisibility(View.GONE);
+                            btnShipBack.setEnabled(true);
+                            if (response.isSuccessful()) {
+                                Toast.makeText(DisputeDetailActivity.this,
+                                        "Pengiriman balik berhasil dikonfirmasi!", Toast.LENGTH_LONG).show();
+                                loadDispute();
+                            } else {
+                                Toast.makeText(DisputeDetailActivity.this, "Gagal mengirim konfirmasi", Toast.LENGTH_SHORT).show();
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(@NonNull Call<ApiResponse<Object>> call, @NonNull Throwable t) {
+                            progressBar.setVisibility(View.GONE);
+                            btnShipBack.setEnabled(true);
+                            Toast.makeText(DisputeDetailActivity.this, "Koneksi gagal", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+        } catch (Exception e) {
+            progressBar.setVisibility(View.GONE);
+            btnShipBack.setEnabled(true);
+            e.printStackTrace();
+            Toast.makeText(this, "Gagal memproses gambar: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private byte[] getBytes(InputStream inputStream) throws Exception {
+        ByteArrayOutputStream byteBuffer = new ByteArrayOutputStream();
+        int bufferSize = 1024;
+        byte[] buffer = new byte[bufferSize];
+        int len;
+        while ((len = inputStream.read(buffer)) != -1) {
+            byteBuffer.write(buffer, 0, len);
+        }
+        return byteBuffer.toByteArray();
     }
 
     private void submitSellerConfirmReturn() {
@@ -343,6 +461,55 @@ public class DisputeDetailActivity extends AppCompatActivity {
                         Toast.makeText(DisputeDetailActivity.this, "Koneksi gagal", Toast.LENGTH_SHORT).show();
                     }
                 });
+    }
+
+    private void submitConfirmRefundReceived() {
+        if (currentDispute == null) return;
+
+        progressBar.setVisibility(View.VISIBLE);
+        btnConfirmRefundReceived.setEnabled(false);
+
+        apiService.buyerConfirmRefund(token, currentDispute.getId())
+                .enqueue(new Callback<ApiResponse<Object>>() {
+                    @Override
+                    public void onResponse(@NonNull Call<ApiResponse<Object>> call,
+                                           @NonNull Response<ApiResponse<Object>> response) {
+                        progressBar.setVisibility(View.GONE);
+                        btnConfirmRefundReceived.setEnabled(true);
+                        if (response.isSuccessful()) {
+                            Toast.makeText(DisputeDetailActivity.this,
+                                    "Konfirmasi penerimaan dana berhasil!", Toast.LENGTH_LONG).show();
+                            loadDispute();
+                        } else {
+                            Toast.makeText(DisputeDetailActivity.this, "Gagal mengirim konfirmasi", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(@NonNull Call<ApiResponse<Object>> call, @NonNull Throwable t) {
+                        progressBar.setVisibility(View.GONE);
+                        btnConfirmRefundReceived.setEnabled(true);
+                        Toast.makeText(DisputeDetailActivity.this, "Koneksi gagal", Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    private String getBaseStorageUrl() {
+        return ApiClient.BASE_URL.replace("api/", "storage/");
+    }
+
+    private void showFullScreenImage(String imageUrl) {
+        android.app.Dialog dialog = new android.app.Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
+        dialog.setContentView(R.layout.dialog_full_screen_image);
+
+        android.widget.ImageView iv = dialog.findViewById(R.id.ivFullScreenImage);
+        Glide.with(this).load(imageUrl).into(iv);
+
+        View btnClose = dialog.findViewById(R.id.btnClose);
+        if (btnClose != null) {
+            btnClose.setOnClickListener(v -> dialog.dismiss());
+        }
+        dialog.show();
     }
 
     @Override

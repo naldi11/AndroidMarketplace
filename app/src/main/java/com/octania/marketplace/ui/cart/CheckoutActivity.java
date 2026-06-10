@@ -54,6 +54,7 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
     private List<Integer> cartIds = new ArrayList<>();
     private List<CartItem> cartItems = new ArrayList<>();
     private int selectedAddressId = -1;
+    private int selectedPaymentMethodId = -1;
     private List<Map<String, Object>> userAddresses = new ArrayList<>();
     private List<Map<String, Object>> paymentMethodsList = new ArrayList<>();
 
@@ -70,7 +71,7 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
     private final String[] vehicleOptions = {"Kurir Motor", "Becak (Bentor)", "Mobil Pickup", "Jemput Sendiri"};
     private final String[] vehicleValues = {"motor", "becak", "pickup", "jemput_sendiri"};
     private double lastTotalWeightKg = -1.0;
-    private boolean isUpdatingSpinner = false;
+    private int spinnerUpdateDepth = 0; // Counter to prevent recursive/race-condition spinner events
     private boolean isLoadingAddresses = false;
     private Double deviceLat = null;
     private Double deviceLng = null;
@@ -151,7 +152,7 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
         binding.spinnerShippingVehicle.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
-                if (isUpdatingSpinner) return;
+                if (spinnerUpdateDepth > 0) return; // Sedang dalam proses update adapter, abaikan event ini
                 String selected = vehicleValues[position];
                 
                 // Get current total weight
@@ -164,7 +165,7 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
                 double totalWeightKg = totalWeightGrams / 1000.0;
                 
                 boolean isEnabled = true;
-                if ("motor".equals(selected) && totalWeightKg > 25) isEnabled = false;
+                if ("motor".equals(selected) && totalWeightKg > 20) isEnabled = false;
                 if ("becak".equals(selected) && totalWeightKg > 100) isEnabled = false;
                 if ("pickup".equals(selected) && totalWeightKg > 1000) isEnabled = false;
                 
@@ -178,7 +179,9 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
                             break;
                         }
                     }
+                    spinnerUpdateDepth++;
                     binding.spinnerShippingVehicle.setSelection(recIndex);
+                    spinnerUpdateDepth--;
                     Toast.makeText(CheckoutActivity.this, "Opsi pengiriman tersebut melebihi kapasitas berat barang!", Toast.LENGTH_SHORT).show();
                     return;
                 }
@@ -268,6 +271,7 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
 
                                 cartItems.clear();
                                 cartItems.add(directItem);
+                                setInitialVehicleFromCartItems();
                                 checkoutAdapter.updateData(cartItems);
                                 calculateTotal();
                             }
@@ -308,6 +312,7 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
                                 }
                             }
 
+                            setInitialVehicleFromCartItems();
                             checkoutAdapter.updateData(cartItems);
                             calculateTotal();
                         } catch (Exception e) {
@@ -382,11 +387,11 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
             recommendedLabel = "Jemput Sendiri";
         }
 
-        if (totalWeightKg > 25) {
+        if (totalWeightKg > 20) {
             binding.tvShippingWarning.setVisibility(View.VISIBLE);
             binding.tvShippingWarning.setTextColor(Color.RED);
             String warningMsg = String.format(Locale.getDefault(),
-                    "Total berat barang: %.1f kg.\nOpsi Kurir Motor dinonaktifkan (kapasitas maks 25 kg). Disarankan menggunakan %s.",
+                    "Total berat barang: %.1f kg.\nOpsi Kurir Motor dinonaktifkan (kapasitas maks 20 kg). Disarankan menggunakan %s.",
                     totalWeightKg, recommendedLabel);
             if (totalWeightKg > 100) {
                 warningMsg = String.format(Locale.getDefault(),
@@ -403,17 +408,16 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
             binding.tvShippingWarning.setVisibility(View.VISIBLE);
             binding.tvShippingWarning.setTextColor(Color.parseColor("#4CAF50")); // Green color
             binding.tvShippingWarning.setText(String.format(Locale.getDefault(),
-                    "Total berat barang: %.1f kg. (Kapasitas Kurir Motor aman). Pilihan disarankan: %s.",
+                    "Total berat barang: %.1f kg. (Kapasitas Kurir Motor aman - di bawah 20 kg). Pilihan disarankan: %s.",
                     totalWeightKg, recommendedLabel));
         }
 
         binding.btnPlaceOrder.setEnabled(false);
         String token = "Bearer " + sessionManager.getToken();
         
-        // Include payment_method_id for adminFee calculation (Default to first method)
-        if (!paymentMethodsList.isEmpty()) {
-            int paymentMethodId = ((Double) paymentMethodsList.get(0).get("id")).intValue();
-            body.put("payment_method_id", paymentMethodId);
+        // Include payment_method_id for adminFee calculation
+        if (selectedPaymentMethodId != -1) {
+            body.put("payment_method_id", selectedPaymentMethodId);
         }
 
         apiService.previewCheckout(token, body).enqueue(new Callback<ApiResponse<Object>>() {
@@ -443,6 +447,32 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
                             binding.tvShippingCost.setText(String.format("Rp %,.0f", shippingCost));
                             binding.tvShippingCostDetail.setText(String.format("Estimasi Ongkir: Rp %,.0f", shippingCost));
 
+                            // suggested_vehicle logic
+                            // suggested_vehicle text logic (display suggestion only, do not force-select)
+                            if (data.containsKey("suggested_vehicle") && data.get("suggested_vehicle") != null) {
+                                String suggested = String.valueOf(data.get("suggested_vehicle"));
+                                if (!suggested.isEmpty() && !"null".equals(suggested)) {
+                                    String readableSuggested = "";
+                                    for (int i = 0; i < vehicleValues.length; i++) {
+                                        if (vehicleValues[i].equals(suggested)) {
+                                            readableSuggested = vehicleOptions[i];
+                                            break;
+                                        }
+                                    }
+                                    if (!readableSuggested.isEmpty()) {
+                                        binding.tvSuggestedVehicle.setVisibility(View.VISIBLE);
+                                        binding.tvSuggestedVehicle.setText("Penjual menyarankan menggunakan: " + readableSuggested + " (Saran)");
+                                    } else {
+                                        binding.tvSuggestedVehicle.setVisibility(View.GONE);
+                                    }
+                                } else {
+                                    binding.tvSuggestedVehicle.setVisibility(View.GONE);
+                                }
+                            } else {
+                                binding.tvSuggestedVehicle.setVisibility(View.GONE);
+                            }
+                            binding.spinnerShippingVehicle.setEnabled(true);
+
                             if (data.containsKey("distance_km") && data.get("distance_km") != null &&
                                     data.containsKey("buyer_latitude") && data.get("buyer_latitude") != null &&
                                     data.containsKey("buyer_longitude") && data.get("buyer_longitude") != null &&
@@ -467,7 +497,9 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
                                 if (durationMinutes < 1) durationMinutes = 1;
                                 
                                 binding.tvDurationPreview.setText(durationMinutes + " mnt");
-                                binding.tvDistancePreview.setText(String.format(new Locale("in", "ID"), "(%.1f km)", dist));
+                                java.text.DecimalFormatSymbols symbols = new java.text.DecimalFormatSymbols(new Locale("in", "ID"));
+                                java.text.DecimalFormat df = new java.text.DecimalFormat("0.###", symbols);
+                                binding.tvDistancePreview.setText("(" + df.format(dist) + " km)");
 
                                 binding.mapPreview.getOverlays().clear();
 
@@ -582,8 +614,32 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
                         }.getType();
                         paymentMethodsList = gson.fromJson(json, listType);
 
-                        // Background logic: Automatically select the first payment method
                         if (!paymentMethodsList.isEmpty()) {
+                            List<String> bankNames = new ArrayList<>();
+                            for (Map<String, Object> method : paymentMethodsList) {
+                                String name = method.containsKey("name") ? String.valueOf(method.get("name")) : "-";
+                                bankNames.add(name);
+                            }
+                            
+                            ArrayAdapter<String> adapter = new ArrayAdapter<>(CheckoutActivity.this,
+                                    android.R.layout.simple_spinner_item, bankNames);
+                            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                            binding.spinnerPaymentMethod.setAdapter(adapter);
+                            
+                            binding.spinnerPaymentMethod.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+                                @Override
+                                public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+                                    Map<String, Object> selectedMethod = paymentMethodsList.get(position);
+                                    selectedPaymentMethodId = ((Double) selectedMethod.get("id")).intValue();
+                                    calculateTotal();
+                                }
+
+                                @Override
+                                public void onNothingSelected(android.widget.AdapterView<?> parent) {}
+                            });
+                            
+                            // Set initial selected ID
+                            selectedPaymentMethodId = ((Double) paymentMethodsList.get(0).get("id")).intValue();
                             calculateTotal();
                         }
                     }
@@ -592,7 +648,7 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
 
             @Override
             public void onFailure(Call<ApiResponse<List<Object>>> call, Throwable t) {
-                // Method removed from UI but logic kept for API
+                Toast.makeText(CheckoutActivity.this, "Gagal memuat metode pembayaran", Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -885,11 +941,7 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
             return;
         }
 
-        // Use first payment method if available
-        int paymentMethodId = 1; // Default
-        if (!paymentMethodsList.isEmpty()) {
-            paymentMethodId = ((Double) paymentMethodsList.get(0).get("id")).intValue();
-        }
+        int paymentMethodId = selectedPaymentMethodId != -1 ? selectedPaymentMethodId : 1;
 
         binding.btnPlaceOrder.setEnabled(false);
         binding.btnPlaceOrder.setText("MEMPROSES...");
@@ -1039,7 +1091,7 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
     }
 
     private String getRecommendedVehicle(double weightKg) {
-        if (weightKg <= 25) {
+        if (weightKg <= 20) {
             return "motor";
         } else if (weightKg <= 100) {
             return "becak";
@@ -1047,6 +1099,48 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
             return "pickup";
         } else {
             return "jemput_sendiri";
+        }
+    }
+
+    private void setInitialVehicleFromCartItems() {
+        String suggested = null;
+        int highestPriority = 0;
+        for (CartItem item : cartItems) {
+            if (item.getProduct() != null && item.getProduct().getShippingSuggestion() != null) {
+                String sug = item.getProduct().getShippingSuggestion();
+                int priority = 0;
+                if ("jemput_sendiri".equals(sug)) priority = 1;
+                else if ("motor".equals(sug)) priority = 2;
+                else if ("becak".equals(sug)) priority = 3;
+                else if ("pickup".equals(sug)) priority = 4;
+                
+                if (priority > highestPriority) {
+                    highestPriority = priority;
+                    suggested = sug;
+                }
+            }
+        }
+        
+        if (suggested != null) {
+            shippingVehicle = suggested;
+            if ("jemput_sendiri".equals(shippingVehicle)) {
+                deliveryType = "pickup";
+            } else {
+                deliveryType = "courier";
+            }
+            
+            int index = -1;
+            for (int i = 0; i < vehicleValues.length; i++) {
+                if (vehicleValues[i].equals(shippingVehicle)) {
+                    index = i;
+                    break;
+                }
+            }
+            if (index != -1) {
+                spinnerUpdateDepth++;
+                binding.spinnerShippingVehicle.setSelection(index);
+                spinnerUpdateDepth--;
+            }
         }
     }
 
@@ -1059,8 +1153,8 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
             String name = vehicleOptions[i];
             
             if ("motor".equals(val)) {
-                if (totalWeightKg > 25) {
-                    name += " (Maks 25kg - Dinonaktifkan)";
+                if (totalWeightKg > 20) {
+                    name += " (Maks 20kg - Dinonaktifkan)";
                 } else if ("motor".equals(recommendedValue)) {
                     name += " (Disarankan)";
                 }
@@ -1084,52 +1178,49 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
             dynamicOptions[i] = name;
         }
         
-        int currentIndex = binding.spinnerShippingVehicle.getSelectedItemPosition();
-        
-        isUpdatingSpinner = true;
-        VehicleSpinnerAdapter adapter = new VehicleSpinnerAdapter(this, dynamicOptions, totalWeightKg);
-        binding.spinnerShippingVehicle.setAdapter(adapter);
-        
+        // Temukan indeks dari pilihan PEMBELI saat ini (shippingVehicle)
+        // Jika pilihan pembeli tidak valid (melebihi kapasitas), otomatis pilih yang direkomendasikan
         int targetPosition = -1;
-        if (currentIndex >= 0 && currentIndex < vehicleValues.length) {
-            String currentVal = vehicleValues[currentIndex];
-            if (totalWeightKg > 25 && "motor".equals(currentVal)) {
-                // Disabled
-            } else if (totalWeightKg > 100 && "becak".equals(currentVal)) {
-                // Disabled
-            } else if (totalWeightKg > 1000 && "pickup".equals(currentVal)) {
-                // Disabled
-            } else {
-                targetPosition = currentIndex;
-                shippingVehicle = currentVal;
-                if ("jemput_sendiri".equals(shippingVehicle)) {
-                    deliveryType = "pickup";
-                } else {
-                    deliveryType = "courier";
-                }
+        for (int i = 0; i < vehicleValues.length; i++) {
+            if (vehicleValues[i].equals(shippingVehicle)) {
+                targetPosition = i;
+                break;
             }
         }
         
-        if (targetPosition == -1) {
+        // Cek apakah pilihan saat ini masih valid setelah perubahan berat
+        boolean currentSelectionDisabled = false;
+        if (targetPosition >= 0) {
+            String currentVal = vehicleValues[targetPosition];
+            if (totalWeightKg > 20 && "motor".equals(currentVal)) currentSelectionDisabled = true;
+            if (totalWeightKg > 100 && "becak".equals(currentVal)) currentSelectionDisabled = true;
+            if (totalWeightKg > 1000 && "pickup".equals(currentVal)) currentSelectionDisabled = true;
+        }
+        
+        if (currentSelectionDisabled || targetPosition == -1) {
+            // Pilihan saat ini tidak valid, fallback ke rekomendasi
+            targetPosition = -1;
             for (int i = 0; i < vehicleValues.length; i++) {
                 if (vehicleValues[i].equals(recommendedValue)) {
                     targetPosition = i;
                     shippingVehicle = recommendedValue;
-                    if ("jemput_sendiri".equals(shippingVehicle)) {
-                        deliveryType = "pickup";
-                    } else {
-                        deliveryType = "courier";
-                    }
+                    deliveryType = "jemput_sendiri".equals(shippingVehicle) ? "pickup" : "courier";
                     break;
                 }
             }
         }
         
+        // Set adapter baru dengan counter untuk mencegah event onItemSelected terpicu
+        spinnerUpdateDepth++;
+        VehicleSpinnerAdapter adapter = new VehicleSpinnerAdapter(this, dynamicOptions, totalWeightKg);
+        binding.spinnerShippingVehicle.setAdapter(adapter);
+        
         if (targetPosition != -1) {
             binding.spinnerShippingVehicle.setSelection(targetPosition);
         }
         
-        binding.spinnerShippingVehicle.post(() -> isUpdatingSpinner = false);
+        // Turunkan counter setelah semua operasi selesai
+        binding.spinnerShippingVehicle.post(() -> spinnerUpdateDepth--);
     }
 
     private class VehicleSpinnerAdapter extends ArrayAdapter<String> {
@@ -1144,7 +1235,7 @@ public class CheckoutActivity extends AppCompatActivity implements CheckoutAdapt
         @Override
         public boolean isEnabled(int position) {
             String val = vehicleValues[position];
-            if ("motor".equals(val) && totalWeightKg > 25) {
+            if ("motor".equals(val) && totalWeightKg > 20) {
                 return false;
             }
             if ("becak".equals(val) && totalWeightKg > 100) {

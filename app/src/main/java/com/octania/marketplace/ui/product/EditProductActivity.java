@@ -44,6 +44,8 @@ public class EditProductActivity extends AppCompatActivity {
     private static final String[] CONDITION_LABELS = { "Seperti Baru", "Bekas" };
 
     private final String[] weightUnits = { "gr", "kg" };
+    private final String[] shippingSuggestionLabels = { "Tidak Ada Saran", "Kurir Motor", "Becak / Bentor", "Mobil Pickup", "Jemput Sendiri" };
+    private final String[] shippingSuggestionValues = { "", "motor", "becak", "pickup", "jemput_sendiri" };
 
     private final androidx.activity.result.ActivityResultLauncher<android.content.Intent> mapPickerLauncher = registerForActivityResult(
             new androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult(),
@@ -86,6 +88,12 @@ public class EditProductActivity extends AppCompatActivity {
                 weightUnits);
         weightAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         binding.spWeightUnit.setAdapter(weightAdapter);
+
+        // Shipping suggestion spinner
+        ArrayAdapter<String> suggestionAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item,
+                shippingSuggestionLabels);
+        suggestionAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        binding.spShippingSuggestion.setAdapter(suggestionAdapter);
 
         binding.tilLocation.setEndIconOnClickListener(v -> {
             android.content.Intent intent = new android.content.Intent(this, com.octania.marketplace.ui.profile.MapPickerActivity.class);
@@ -186,6 +194,16 @@ public class EditProductActivity extends AppCompatActivity {
         binding.etLocation.setText(product.getLocation() != null ? product.getLocation() : "");
         binding.etDescription.setText(product.getDescription() != null ? product.getDescription() : "");
 
+        // Shipping Suggestion selection
+        if (product.getShippingSuggestion() != null) {
+            for (int i = 0; i < shippingSuggestionValues.length; i++) {
+                if (shippingSuggestionValues[i].equals(product.getShippingSuggestion())) {
+                    binding.spShippingSuggestion.setSelection(i);
+                    break;
+                }
+            }
+        }
+
         // Condition
         if (product.getCondition() != null) {
             for (int i = 0; i < CONDITIONS.length; i++) {
@@ -246,13 +264,14 @@ public class EditProductActivity extends AppCompatActivity {
 
         int categoryId = categoryIds.isEmpty() ? 1 : categoryIds.get(binding.spCategory.getSelectedItemPosition());
         String condition = CONDITIONS[binding.spCondition.getSelectedItemPosition()];
+        String shippingSuggestion = shippingSuggestionValues[binding.spShippingSuggestion.getSelectedItemPosition()];
 
         binding.btnSave.setEnabled(false);
         binding.btnSave.setText("Menyimpan...");
 
         String token = "Bearer " + sessionManager.getToken();
         apiService.updateProduct(token, productId, name, price, discountPrice, stock,
-                categoryId, condition, weight, location, description)
+                categoryId, condition, weight, location, description, shippingSuggestion)
                 .enqueue(new Callback<ApiResponse<Object>>() {
                     @Override
                     public void onResponse(Call<ApiResponse<Object>> call, Response<ApiResponse<Object>> response) {

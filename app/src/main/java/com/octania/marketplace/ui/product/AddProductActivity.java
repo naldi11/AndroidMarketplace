@@ -61,6 +61,8 @@ public class AddProductActivity extends AppCompatActivity {
     private List<Integer> categoryIds = new ArrayList<>();
 
     private final String[] conditionList = { "Seperti Baru", "Bekas" };
+    private final String[] shippingSuggestionLabels = { "Tidak Ada Saran", "Kurir Motor", "Becak / Bentor", "Mobil Pickup", "Jemput Sendiri" };
+    private final String[] shippingSuggestionValues = { "", "motor", "becak", "pickup", "jemput_sendiri" };
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1001;
 
@@ -136,6 +138,10 @@ public class AddProductActivity extends AppCompatActivity {
         ArrayAdapter<String> condAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item,
                 conditionList);
         binding.spinnerCondition.setAdapter(condAdapter);
+
+        ArrayAdapter<String> suggestionAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item,
+                shippingSuggestionLabels);
+        binding.spinnerShippingSuggestion.setAdapter(suggestionAdapter);
 
         // Setup weight units spinner
         ArrayAdapter<String> weightAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item,
@@ -361,10 +367,13 @@ public class AddProductActivity extends AppCompatActivity {
             String lngString = currentLng != null ? String.valueOf(currentLng) : "";
             RequestBody latBody = RequestBody.create(MediaType.parse("text/plain"), latString);
             RequestBody lngBody = RequestBody.create(MediaType.parse("text/plain"), lngString);
+            int suggestionIndex = binding.spinnerShippingSuggestion.getSelectedItemPosition();
+            String shippingSuggestionValue = shippingSuggestionValues[suggestionIndex];
+            RequestBody shippingSuggestionBody = RequestBody.create(MediaType.parse("text/plain"), shippingSuggestionValue);
 
             apiService.addProduct("Bearer " + sessionManager.getToken(),
                     nameBody, descBody, priceBody, discountBody, stockBody, categoryIdBody, conditionBody, weightBody,
-                    locationBody, latBody, lngBody, imageParts)
+                    locationBody, latBody, lngBody, shippingSuggestionBody, imageParts)
                     .enqueue(new Callback<ApiResponse<Object>>() {
                         @Override
                         public void onResponse(Call<ApiResponse<Object>> call, Response<ApiResponse<Object>> response) {

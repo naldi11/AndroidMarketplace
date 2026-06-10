@@ -76,10 +76,6 @@ public class ProfileActivity extends AppCompatActivity {
     // Settings menus
     private LinearLayout menuAddress, menuChangePassword, menuMyVouchers;
 
-    // MeyPay Wallet
-    private View cardMeyPay;
-    private TextView tvWalletBalance;
-    private View btnTopUp, btnScanMeyPay, btnWalletHistory;
 
     // Logout
     private LinearLayout btnLogout;
@@ -181,11 +177,6 @@ public class ProfileActivity extends AppCompatActivity {
         menuChangePassword = findViewById(R.id.menuChangePassword);
         menuMyVouchers = findViewById(R.id.menuMyVouchers);
 
-        cardMeyPay = findViewById(R.id.cardMeyPay);
-        tvWalletBalance = findViewById(R.id.tvWalletBalance);
-        btnTopUp = findViewById(R.id.btnTopUp);
-        btnScanMeyPay = findViewById(R.id.btnScanMeyPay);
-        btnWalletHistory = findViewById(R.id.btnWalletHistory);
 
         btnLogout = findViewById(R.id.btnLogout);
     }
@@ -224,39 +215,8 @@ public class ProfileActivity extends AppCompatActivity {
         // Logout
         btnLogout.setOnClickListener(v -> confirmLogout());
 
-        // MeyPay Wallet
-        cardMeyPay.setOnClickListener(v -> {
-            startActivity(new Intent(this, com.octania.marketplace.ui.payment.WalletActivity.class));
-        });
 
-        if (btnTopUp != null) {
-            btnTopUp.setOnClickListener(v -> {
-                startActivity(new Intent(this, com.octania.marketplace.ui.payment.WalletActivity.class));
-            });
-        }
 
-        if (btnScanMeyPay != null) {
-            btnScanMeyPay.setOnClickListener(v -> {
-                startActivity(new Intent(this, com.octania.marketplace.ui.payment.ScanQrActivity.class));
-            });
-        }
-
-        if (btnWalletHistory != null) {
-            btnWalletHistory.setOnClickListener(v -> {
-                startActivity(new Intent(this, com.octania.marketplace.ui.payment.WalletActivity.class));
-            });
-        }
-
-        // The FAB Scan is now inside the Buyer Include, so we find it there
-        View buyerNav = findViewById(R.id.includeBottomNavBuyer);
-        if (buyerNav != null) {
-            View fab = buyerNav.findViewById(R.id.fabScan);
-            if (fab != null) {
-                fab.setOnClickListener(v -> {
-                    com.octania.marketplace.utils.NavigationUtils.showScanDialog(this);
-                });
-            }
-        }
     }
 
     // ===== Bottom Navigation =====
@@ -320,9 +280,7 @@ public class ProfileActivity extends AppCompatActivity {
                 startActivity(new Intent(this, com.octania.marketplace.ui.home.HomeActivity.class));
                 finish();
                 return true;
-            } else if (id == R.id.nav_scan) {
-                com.octania.marketplace.utils.NavigationUtils.showScanDialog(this);
-                return false;
+
             } else if (id == R.id.nav_orders) {
                 startActivity(new Intent(this, com.octania.marketplace.ui.seller.MyOrdersActivity.class));
                 finish();
@@ -353,7 +311,6 @@ public class ProfileActivity extends AppCompatActivity {
             public void onResponse(Call<User> call, Response<User> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     renderUserProfile(response.body());
-                    fetchWalletInfo();
                 }
             }
 
@@ -364,25 +321,6 @@ public class ProfileActivity extends AppCompatActivity {
         });
     }
 
-    private void fetchWalletInfo() {
-        if (!sessionManager.isLoggedIn()) return;
-        String token = "Bearer " + sessionManager.getToken();
-        apiService.getWalletInfo(token).enqueue(new Callback<ApiResponse<Object>>() {
-            @Override
-            public void onResponse(Call<ApiResponse<Object>> call, Response<ApiResponse<Object>> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    java.util.Map<String, Object> data = (java.util.Map<String, Object>) response.body().getData();
-                    if (data != null && data.containsKey("balance")) {
-                        double balance = ((Number) data.get("balance")).doubleValue();
-                        tvWalletBalance.setText(String.format("Rp %,.0f", balance));
-                    }
-                }
-            }
-
-            @Override
-            public void onFailure(Call<ApiResponse<Object>> call, Throwable t) {}
-        });
-    }
 
     private void renderUserProfile(User user) {
         tvUserName.setText(user.getName() != null ? user.getName() : "—");

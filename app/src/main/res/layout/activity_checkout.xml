@@ -222,6 +222,16 @@
                         android:id="@+id/spinnerShippingVehicle"
                         android:layout_width="match_parent"
                         android:layout_height="48dp"
+                        android:layout_marginBottom="4dp"/>
+
+                    <TextView
+                        android:id="@+id/tvSuggestedVehicle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/primary_orange"
+                        android:textSize="12sp"
+                        android:textStyle="italic|bold"
+                        android:visibility="gone"
                         android:layout_marginBottom="8dp"/>
 
                     <TextView
@@ -246,6 +256,34 @@
             </com.google.android.material.card.MaterialCardView>
 
             <!-- Payment Method Section -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Metode Pembayaran (Transfer Bank)"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                android:textColor="#333333"
+                android:layout_marginBottom="8dp"/>
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="8dp"
+                app:cardElevation="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <Spinner
+                        android:id="@+id/spinnerPaymentMethod"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
 
             <!-- Voucher Section -->

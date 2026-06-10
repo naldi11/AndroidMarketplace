@@ -320,6 +320,20 @@
                             android:background="@drawable/bg_spinner" />
                     </LinearLayout>
 
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="Saran Kendaraan Pengiriman (Prioritas)"
+                        android:textSize="11sp"
+                        android:textColor="#757575"
+                        android:layout_marginBottom="4dp" />
+                    <Spinner
+                        android:id="@+id/spinnerShippingSuggestion"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:background="@drawable/bg_spinner" />
+
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/tilLocation"
                         android:layout_width="match_parent"

@@ -116,7 +116,7 @@ public class MyOrdersActivity extends AppCompatActivity {
         binding.bottomNavInclude.bottomNav.setSelectedItemId(R.id.nav_orders);
         com.octania.marketplace.utils.NavigationUtils.applyFloatingEffect(binding.bottomNavInclude.bottomNav);
         
-        binding.bottomNavInclude.fabScan.setOnClickListener(v -> showScanDialog());
+
 
         binding.bottomNavInclude.bottomNav.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
@@ -139,9 +139,7 @@ public class MyOrdersActivity extends AppCompatActivity {
         });
     }
 
-    private void showScanDialog() {
-        com.octania.marketplace.utils.NavigationUtils.showScanDialog(this);
-    }
+
 
     private void setupTabs() {
         binding.tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
@@ -613,22 +611,13 @@ public class MyOrdersActivity extends AppCompatActivity {
 
             if ("waiting_payment".equals(status)) {
                 h.btnPrimary.setVisibility(View.VISIBLE);
-                boolean isAutoPayment = paymentMethod != null &&
-                        (paymentMethod.toLowerCase().contains("meypay") ||
-                         paymentMethod.toLowerCase().contains("wallet"));
-                if (isAutoPayment) {
-                    h.btnPrimary.setText("Bayar Sekarang");
-                    h.btnPrimary.setOnClickListener(v -> {
-                        Intent intent = new Intent(MyOrdersActivity.this,
-                                com.octania.marketplace.ui.payment.PaymentActivity.class);
-                        intent.putExtra("transaction_id", txId);
-                        startActivity(intent);
-                    });
-                } else {
-                    h.btnPrimary.setText("Upload Bukti Bayar");
-                    h.btnPrimary.setOnClickListener(v -> openFilePickerForProof(txId));
-                }
-
+                h.btnPrimary.setText("Bayar Sekarang");
+                h.btnPrimary.setOnClickListener(v -> {
+                    Intent intent = new Intent(MyOrdersActivity.this,
+                            com.octania.marketplace.ui.payment.PaymentActivity.class);
+                    intent.putExtra("transaction_id", txId);
+                    startActivity(intent);
+                });
             } else if ("shipped".equals(status)) {
                 h.btnPrimary.setVisibility(View.VISIBLE);
                 h.btnPrimary.setText("Konfirmasi Diterima");

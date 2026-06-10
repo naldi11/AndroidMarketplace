@@ -11,10 +11,10 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 public class ApiClient {
-    public static final String BASE_URL = "http://192.168.1.4:8000/api/";
+    public static final String BASE_URL = "http://192.168.1.7:8000/api/";
     //public static final String BASE_URL = "http://172.20.10.10:8000/api/";
 
-    private static Retrofit retrofit = null;
+    private static Retrofit retrofit = null; 
     private static Context appContext = null;
 
     /** Panggil sekali di Application.onCreate() atau sebelum getClient() pertama kali. */

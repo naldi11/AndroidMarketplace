@@ -19,6 +19,9 @@ public class Product {
     private Integer weight;
     private String location;
 
+    @SerializedName("shipping_suggestion")
+    private String shippingSuggestion;
+
     @SerializedName("effective_price")
     private double effectivePrice;
 
@@ -157,6 +160,14 @@ public class Product {
 
     public String getLocation() {
         return location;
+    }
+
+    public String getShippingSuggestion() {
+        return shippingSuggestion;
+    }
+
+    public void setShippingSuggestion(String shippingSuggestion) {
+        this.shippingSuggestion = shippingSuggestion;
     }
 
     @SerializedName("user")
