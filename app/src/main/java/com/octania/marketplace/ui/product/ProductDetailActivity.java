@@ -170,7 +170,7 @@ public class ProductDetailActivity extends AppCompatActivity {
                 int meters = (int) Math.round(dist * 1000);
                 binding.tvProductDistance.setText("📍 " + meters + " m dari Anda");
             } else {
-                binding.tvProductDistance.setText(String.format(java.util.Locale.US, "📍 %.1f km dari Anda", dist));
+                binding.tvProductDistance.setText(String.format(java.util.Locale.US, "📍 %.2f km dari Anda", dist));
             }
             binding.tvProductDistance.setVisibility(View.VISIBLE);
         } else {

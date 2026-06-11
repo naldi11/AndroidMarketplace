@@ -28,6 +28,15 @@ public class User {
     @SerializedName("unread_count")
     private int unreadCount;
 
+    @SerializedName("bank_name")
+    private String bankName;
+
+    @SerializedName("bank_account_number")
+    private String bankAccountNumber;
+
+    @SerializedName("bank_account_name")
+    private String bankAccountName;
+
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
 
@@ -51,6 +60,15 @@ public class User {
 
     public String getShopName() { return shopName; }
     public void setShopName(String shopName) { this.shopName = shopName; }
+
+    public String getBankName() { return bankName; }
+    public void setBankName(String bankName) { this.bankName = bankName; }
+
+    public String getBankAccountNumber() { return bankAccountNumber; }
+    public void setBankAccountNumber(String bankAccountNumber) { this.bankAccountNumber = bankAccountNumber; }
+
+    public String getBankAccountName() { return bankAccountName; }
+    public void setBankAccountName(String bankAccountName) { this.bankAccountName = bankAccountName; }
 
     public String getLastMessage() { return lastMessage; }
     public void setLastMessage(String lastMessage) { this.lastMessage = lastMessage; }

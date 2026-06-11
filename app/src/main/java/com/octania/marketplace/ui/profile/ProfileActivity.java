@@ -71,7 +71,7 @@ public class ProfileActivity extends AppCompatActivity {
     private TextView btnLihatSemua;
 
     // Seller menus
-    private LinearLayout menuMyProducts, menuSellerBalance;
+    private LinearLayout menuMyProducts, menuSellerBalance, menuSellerBank;
 
     // Settings menus
     private LinearLayout menuAddress, menuChangePassword, menuMyVouchers;
@@ -172,6 +172,7 @@ public class ProfileActivity extends AppCompatActivity {
 
         menuMyProducts = findViewById(R.id.menuMyProducts);
         menuSellerBalance = findViewById(R.id.menuSellerBalance);
+        menuSellerBank = findViewById(R.id.menuSellerBank);
 
         menuAddress = findViewById(R.id.menuAddress);
         menuChangePassword = findViewById(R.id.menuChangePassword);
@@ -206,6 +207,7 @@ public class ProfileActivity extends AppCompatActivity {
         // Seller menus
         menuMyProducts.setOnClickListener(v -> startActivity(new Intent(this, MyProductsActivity.class)));
         menuSellerBalance.setOnClickListener(v -> startActivity(new Intent(this, SellerBalanceActivity.class)));
+        menuSellerBank.setOnClickListener(v -> showEditProfileDialog());
 
         // Settings
         menuAddress.setOnClickListener(v -> startActivity(new Intent(this, ManageAddressActivity.class)));
@@ -322,7 +324,10 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
 
+    private User currentUser;
+
     private void renderUserProfile(User user) {
+        this.currentUser = user;
         tvUserName.setText(user.getName() != null ? user.getName() : "—");
         tvUserEmail.setText(user.getEmail() != null ? user.getEmail() : "—");
         tvUserPhone.setText(user.getPhone() != null ? user.getPhone() : "—");
@@ -414,6 +419,15 @@ public class ProfileActivity extends AppCompatActivity {
         TextInputEditText etName = view.findViewById(R.id.etName);
         TextInputEditText etEmail = view.findViewById(R.id.etEmail);
         TextInputEditText etPhone = view.findViewById(R.id.etPhone);
+        
+        TextInputEditText etBankName = view.findViewById(R.id.etBankName);
+        TextInputEditText etBankAccountNumber = view.findViewById(R.id.etBankAccountNumber);
+        TextInputEditText etBankAccountName = view.findViewById(R.id.etBankAccountName);
+
+        View layoutBankName = view.findViewById(R.id.layoutBankName);
+        View layoutBankAccountNumber = view.findViewById(R.id.layoutBankAccountNumber);
+        View layoutBankAccountName = view.findViewById(R.id.layoutBankAccountName);
+
         MaterialButton btnSave = view.findViewById(R.id.btnSave);
 
         // Pre-fill with current data (strip "—" placeholder)
@@ -424,25 +438,54 @@ public class ProfileActivity extends AppCompatActivity {
         etEmail.setText("—".equals(currentEmail) ? "" : currentEmail);
         etPhone.setText("—".equals(currentPhone) ? "" : currentPhone);
 
+        String role = sessionManager.getActiveRole();
+        if ("seller".equals(role)) {
+            if (layoutBankName != null) layoutBankName.setVisibility(View.VISIBLE);
+            if (layoutBankAccountNumber != null) layoutBankAccountNumber.setVisibility(View.VISIBLE);
+            if (layoutBankAccountName != null) layoutBankAccountName.setVisibility(View.VISIBLE);
+
+            if (currentUser != null) {
+                if (etBankName != null) etBankName.setText(currentUser.getBankName() != null ? currentUser.getBankName() : "");
+                if (etBankAccountNumber != null) etBankAccountNumber.setText(currentUser.getBankAccountNumber() != null ? currentUser.getBankAccountNumber() : "");
+                if (etBankAccountName != null) etBankAccountName.setText(currentUser.getBankAccountName() != null ? currentUser.getBankAccountName() : "");
+            }
+        } else {
+            if (layoutBankName != null) layoutBankName.setVisibility(View.GONE);
+            if (layoutBankAccountNumber != null) layoutBankAccountNumber.setVisibility(View.GONE);
+            if (layoutBankAccountName != null) layoutBankAccountName.setVisibility(View.GONE);
+        }
+
         btnSave.setOnClickListener(v -> {
             String name = etName.getText() != null ? etName.getText().toString().trim() : "";
             String email = etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
             String phone = etPhone.getText() != null ? etPhone.getText().toString().trim() : "";
+            
+            String shopName = name; // Samakan nama toko dengan nama pengguna secara default
+            String bankName = etBankName != null && etBankName.getText() != null ? etBankName.getText().toString().trim() : "";
+            String bankAccountNumber = etBankAccountNumber != null && etBankAccountNumber.getText() != null ? etBankAccountNumber.getText().toString().trim() : "";
+            String bankAccountName = etBankAccountName != null && etBankAccountName.getText() != null ? etBankAccountName.getText().toString().trim() : "";
 
             if (name.isEmpty() || email.isEmpty()) {
                 Toast.makeText(this, "Nama dan email wajib diisi", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            updateProfile(name, email, phone, dialog);
+            if ("seller".equals(role)) {
+                if (bankName.isEmpty() || bankAccountNumber.isEmpty() || bankAccountName.isEmpty()) {
+                    Toast.makeText(this, "Semua data rekening wajib diisi untuk penjual", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+            }
+
+            updateProfile(name, email, phone, shopName, bankName, bankAccountNumber, bankAccountName, dialog);
         });
 
         dialog.show();
     }
 
-    private void updateProfile(String name, String email, String phone, Dialog dialog) {
+    private void updateProfile(String name, String email, String phone, String shopName, String bankName, String bankAccountNumber, String bankAccountName, Dialog dialog) {
         String token = "Bearer " + sessionManager.getToken();
-        apiService.updateProfile(token, name, email, phone).enqueue(new Callback<ApiResponse<User>>() {
+        apiService.updateProfile(token, name, email, phone, shopName, bankName, bankAccountNumber, bankAccountName).enqueue(new Callback<ApiResponse<User>>() {
             @Override
             public void onResponse(Call<ApiResponse<User>> call, Response<ApiResponse<User>> response) {
                 if (response.isSuccessful() && response.body() != null

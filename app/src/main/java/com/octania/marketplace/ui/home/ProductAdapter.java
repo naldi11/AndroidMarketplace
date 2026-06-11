@@ -272,7 +272,7 @@ public class ProductAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                         tvProductDistance.setText(meters + " m");
                     } else {
                         tvProductDistance.setText(
-                                String.format(java.util.Locale.US, "%.1f km", dist));
+                                String.format(java.util.Locale.US, "%.2f km", dist));
                     }
                     tvProductDistance.setVisibility(View.VISIBLE);
                 } else {

@@ -43,7 +43,10 @@ public interface ApiService {
                         @Field("address") String address,
                         @Field("latitude") Double latitude,
                         @Field("longitude") Double longitude,
-                        @Field("device_id") String deviceId);
+                        @Field("device_id") String deviceId,
+                        @Field("bank_name") String bankName,
+                        @Field("bank_account_number") String bankAccountNumber,
+                        @Field("bank_account_name") String bankAccountName);
 
         @POST("logout")
         Call<ApiResponse<Void>> logout(
@@ -59,7 +62,11 @@ public interface ApiService {
                         @Header("Authorization") String token,
                         @Field("name") String name,
                         @Field("email") String email,
-                        @Field("phone") String phone);
+                        @Field("phone") String phone,
+                        @Field("shop_name") String shopName,
+                        @Field("bank_name") String bankName,
+                        @Field("bank_account_number") String bankAccountNumber,
+                        @Field("bank_account_name") String bankAccountName);
 
         @retrofit2.http.PUT("profile/password")
         Call<ApiResponse<Void>> updatePassword(

@@ -61,6 +61,17 @@ public class RegisterActivity extends AppCompatActivity {
             public void afterTextChanged(android.text.Editable s) {}
         });
 
+        binding.rgRole.setOnCheckedChangeListener((group, checkedId) -> {
+            if (checkedId == com.octania.marketplace.R.id.rbSeller) {
+                binding.layoutSellerFields.setVisibility(View.VISIBLE);
+            } else {
+                binding.layoutSellerFields.setVisibility(View.GONE);
+                binding.etBankName.setText("");
+                binding.etBankAccountNumber.setText("");
+                binding.etBankAccountName.setText("");
+            }
+        });
+
         binding.btnRegister.setOnClickListener(v -> attemptRegister());
 
         binding.tvLogin.setOnClickListener(v -> finish());
@@ -160,6 +171,9 @@ public class RegisterActivity extends AppCompatActivity {
         int selectedRoleId = binding.rgRole.getCheckedRadioButtonId();
         String role = selectedRoleId == com.octania.marketplace.R.id.rbSeller ? "seller" : "buyer";
         String shopName = "";
+        String bankName = "";
+        String bankAccountNumber = "";
+        String bankAccountName = "";
         String address = "";
 
         if (name.isEmpty() || email.isEmpty() || phone.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
@@ -168,7 +182,15 @@ public class RegisterActivity extends AppCompatActivity {
         }
 
         if ("seller".equals(role)) {
-            // No shop specific fields anymore, will use name on backend
+            shopName = name; // Default nama toko diisi nama pendaftar
+            bankName = binding.etBankName.getText().toString().trim();
+            bankAccountNumber = binding.etBankAccountNumber.getText().toString().trim();
+            bankAccountName = binding.etBankAccountName.getText().toString().trim();
+
+            if (bankName.isEmpty() || bankAccountNumber.isEmpty() || bankAccountName.isEmpty()) {
+                Toast.makeText(this, "Semua data rekening wajib diisi untuk penjual", Toast.LENGTH_SHORT).show();
+                return;
+            }
         } else {
             lat = null;
             lng = null;
@@ -188,7 +210,7 @@ public class RegisterActivity extends AppCompatActivity {
 
         String deviceId = android.provider.Settings.Secure.getString(getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
 
-        apiService.register(name, email, phone, password, confirmPassword, role, shopName, address, lat, lng, deviceId).enqueue(new Callback<AuthResponse>() {
+        apiService.register(name, email, phone, password, confirmPassword, role, shopName, address, lat, lng, deviceId, bankName, bankAccountNumber, bankAccountName).enqueue(new Callback<AuthResponse>() {
             @Override
             public void onResponse(Call<AuthResponse> call, Response<AuthResponse> response) {
                 setLoading(false);

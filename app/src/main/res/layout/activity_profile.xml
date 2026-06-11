@@ -79,6 +79,7 @@
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="4dp">
                     <LinearLayout android:id="@+id/menuMyProducts" android:layout_width="match_parent" android:layout_height="52dp" android:gravity="center_vertical" android:paddingHorizontal="12dp"><TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Produk Saya" /></LinearLayout>
                     <LinearLayout android:id="@+id/menuSellerBalance" android:layout_width="match_parent" android:layout_height="52dp" android:gravity="center_vertical" android:paddingHorizontal="12dp"><TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Saldo Penjual" /></LinearLayout>
+                    <LinearLayout android:id="@+id/menuSellerBank" android:layout_width="match_parent" android:layout_height="52dp" android:gravity="center_vertical" android:paddingHorizontal="12dp"><TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Rekening Bank Penjual" /></LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

@@ -164,6 +164,72 @@
 
 
 
+                    <!-- Seller Details Area (Hidden by default) -->
+                    <LinearLayout
+                        android:id="@+id/layoutSellerFields"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/tilBankName"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp"
+                            android:hint="Nama Bank (misal: BCA, Mandiri)"
+                            app:startIconDrawable="@drawable/ic_wallet"
+                            app:startIconTint="@color/primary_orange"
+                            app:boxStrokeColor="@color/primary_orange"
+                            app:hintTextColor="@color/primary_orange">
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/etBankName"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="textCapCharacters"
+                                android:textSize="14sp" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/tilBankAccountNumber"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp"
+                            android:hint="Nomor Rekening"
+                            app:startIconDrawable="@drawable/ic_wallet"
+                            app:startIconTint="@color/primary_orange"
+                            app:boxStrokeColor="@color/primary_orange"
+                            app:hintTextColor="@color/primary_orange">
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/etBankAccountNumber"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="number"
+                                android:textSize="14sp" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/tilBankAccountName"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp"
+                            android:hint="Nama Pemilik Rekening"
+                            app:startIconDrawable="@drawable/ic_person"
+                            app:startIconTint="@color/primary_orange"
+                            app:boxStrokeColor="@color/primary_orange"
+                            app:hintTextColor="@color/primary_orange">
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/etBankAccountName"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="textPersonName"
+                                android:textSize="14sp" />
+                        </com.google.android.material.textfield.TextInputLayout>
+                    </LinearLayout>
+
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/tilPassword"
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
